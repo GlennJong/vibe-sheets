@@ -24,7 +24,7 @@ export const useSheetManager = (accessToken: string | null) => {
     setCreationResult(null);
     
     try {
-      const fullName = `vcqs-${sheetName}`;
+      const fullName = `vibesheet-${sheetName}`;
       const targetUrl = `${MASTER_SCRIPT_URL}?token=${accessToken}&name=${encodeURIComponent(fullName)}`;
       
       const res = await fetch(targetUrl);
@@ -49,7 +49,7 @@ export const useSheetManager = (accessToken: string | null) => {
     setTestData(''); // clear legacy states
 
     try {
-      const query = "name contains 'vcqs-' and mimeType = 'application/vnd.google-apps.spreadsheet' and trashed = false";
+      const query = "name contains 'vibesheet-' and mimeType = 'application/vnd.google-apps.spreadsheet' and trashed = false";
       const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id, name, webViewLink, description)`;
       
       const res = await fetch(url, {
@@ -88,7 +88,7 @@ export const useSheetManager = (accessToken: string | null) => {
             scriptUrl = meta.scriptUrl;
           }
         } catch (e) {
-          // ignore
+          console.error(e);
         }
       }
 

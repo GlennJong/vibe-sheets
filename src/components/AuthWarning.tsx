@@ -18,7 +18,7 @@ export const AuthWarning: React.FC<AuthWarningProps> = ({ authUrl, onOpenAuth, t
         <Flex direction="column" gap="2">
           <Text weight="bold">{title || '需要授權'}</Text>
           <Text size="2">
-            由於這是新產生的自動化工具，Google 安全機制要求您必須手動授權一次。
+            由於這是新產生的 Google Sheets 與 Apps Script，Google 安全機制會要求您必須手動授權一次。
           </Text>
           
           <Button 

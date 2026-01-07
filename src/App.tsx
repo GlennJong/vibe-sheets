@@ -34,6 +34,7 @@ const App: React.FC = () => {
   // 當取得 AccessToken 後自動切換到 Menu，避免卡在 Login 頁
   useEffect(() => {
     if (accessToken && view === 'login') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setView('menu');
     }
   }, [accessToken, view]);
@@ -51,7 +52,6 @@ const App: React.FC = () => {
   };
 
   const currentError = authError || sheetError;
-  const loading = authLoading || sheetLoading;
 
   return (
     <Layout isLoggedIn={!!accessToken}>

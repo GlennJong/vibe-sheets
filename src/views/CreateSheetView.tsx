@@ -87,7 +87,7 @@ export const CreateSheetView: React.FC<CreateSheetViewProps> = ({
                 onChange={(e) => setSheetName(e.target.value)}
             >
                 <TextField.Slot>
-                    vcqs-
+                    vibesheet-
                 </TextField.Slot>
             </TextField.Root>
         </Flex>

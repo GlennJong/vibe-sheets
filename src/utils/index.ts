@@ -6,3 +6,13 @@ export const openAuthPopup = (url: string) => {
   const newWin = window.open(url, 'GoogleAuth', `width=${width},height=${height},top=${top},left=${left},resizable=yes,scrollbars=yes,status=yes`);
   if (newWin) newWin.focus();
 };
+
+export const getScriptUrlFromDescription = (description?: string): string | null => {
+  if (!description) return null;
+  try {
+    const meta = JSON.parse(description);
+    return meta.scriptUrl || null;
+  } catch {
+    return null;
+  }
+};
