@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy - Vibe Sheets</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f9f9f9;
+        }
+        h1, h2 {
+            color: #222;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+        p {
+            color: #555;
+        }
+        code {
+            background-color: #eee;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+        }
+        ul {
+            padding-left: 20px;
+        }
+        li {
+            margin-bottom: 10px;
+        }
+        .container {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            font-size: 0.9em;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Vibe Sheets Privacy Policy & Google OAuth Scopes</h1>
+        <p><strong>Last Updated: January 7, 2026</strong></p>
+
+        <h2>Introduction</h2>
+        <p>Vibe Sheets is a client-side development tool designed to help you quickly create simple databases using Google Sheets. To achieve this, we require your authorization for specific Google API scopes via Google's OAuth 2.0 mechanism. This document details the permissions we request and their purpose.</p>
+
+        <h2>Permissions (Scopes) We Request and Their Usage</h2>
+        <p>When you grant access, Vibe Sheets requests the following Google API scopes:</p>
+        <ul>
+            <li>
+                <strong><code>https://www.googleapis.com/auth/spreadsheets</code></strong>
+                <p><strong>Purpose:</strong> To create and modify Google Spreadsheets. This is the core function of the tool, used to generate new spreadsheet files on your behalf.</p>
+            </li>
+            <li>
+                <strong><code>https://www.googleapis.com/auth/script.projects</code></strong>
+                <p><strong>Purpose:</strong> To create and modify Google Apps Script projects. We need this permission to generate a script bound to your spreadsheet, which provides the API functionality.</p>
+            </li>
+            <li>
+                <strong><code>https://www.googleapis.com/auth/script.deployments</code></strong>
+                <p><strong>Purpose:</strong> To create and manage deployments for Apps Script. This allows us to deploy the generated script as a web app, enabling it to return JSON data.</p>
+            </li>
+            <li>
+                <strong><code>https://www.googleapis.com/auth/drive.file</code></strong>
+                <p><strong>Purpose:</strong> To view, create, and modify specific Google Drive files you open or create with this app. We use this to search for the spreadsheets and scripts you've created.</p>
+            </li>
+            <li>
+                <strong><code>https://www.googleapis.com/auth/drive.metadata.readonly</code></strong>
+                <p><strong>Purpose:</strong> To view metadata for files in your Google Drive (e.g., file name and description). We use this to find and store the Web App URL for subsequent connection tests.</p>
+            </li>
+        </ul>
+
+        <h2>Data Storage and Security</h2>
+        <p>The core design philosophy of Vibe Sheets is <strong>decentralization and user control</strong>. We emphasize the following:</p>
+        <ul>
+            <li><strong>Client-Side Operation:</strong> This application runs entirely within your browser. No data is sent to our servers, other than direct communication with Google's APIs.</li>
+            <li><strong>No Data Storage:</strong> We do not store your personal information, Google account data, or the content of any files you generate.</li>
+            <li><strong>Token Security:</strong> Your Google OAuth Access Token is stored only in your browser's memory for the current session. It is discarded when you close the tab.</li>
+        </ul>
+
+        <h2>Contact Us</h2>
+        <p>If you have any questions about this Privacy Policy, please feel free to open an issue on our GitHub project page.</p>
+        <a href="https://github.com/GlennJong/vibe-sheets" target="_blank" rel="noopener noreferrer">
+          Contact via GitHub
+        </a>
+    </div>
+
+    <div class="container">
+        <h1>Vibe Sheets 隱私權與 Google OAuth 權限說明</h1>
+        <p><strong>最後更新日期：2026年1月7日</strong></p>
+
+        <h2>前言</h2>
+        <p>Vibe Sheets 是一個純前端開發工具，旨在協助您快速建立以 Google Sheets 為基礎的簡易資料庫。為了實現此功能，我們需要透過 Google 的 OAuth 2.0 機制，請求您授權特定的 Google API 權限。本文件將詳細說明我們請求的權限以及其用途。</p>
+
+        <h2>我們請求的權限與用途</h2>
+        <p>在您授權登入時，Vibe Sheets 會請求以下 Google API 權限：</p>
+        <ul>
+            <li>
+                <strong><code>https://www.googleapis.com/auth/spreadsheets</code></strong>
+                <p><strong>用途：</strong>建立與修改 Google 試算表。這是本工具的核心功能，用於為您產生新的試算表檔案。</p>
+            </li>
+            <li>
+                <strong><code>https://www.googleapis.com/auth/script.projects</code></strong>
+                <p><strong>用途：</strong>建立與修改 Google Apps Script 專案。我們需要此權限來產生一個與您的試算表綁定的腳本，以提供 API 功能。</p>
+            </li>
+            <li>
+                <strong><code>https://www.googleapis.com/auth/script.deployments</code></strong>
+                <p><strong>用途：</strong>建立與管理 Apps Script 的部署。此權限讓我們能將產生的腳本部署為一個可公開存取的 Web App，使其能回傳 JSON 資料。</p>
+            </li>
+            <li>
+                <strong><code>https://www.googleapis.com/auth/drive.file</code></strong>
+                <p><strong>用途：</strong>讀取、建立與修改您透過此應用程式開啟或建立的特定 Google Drive 檔案。我們用它來搜尋您已建立的試算表與腳本。</p>
+            </li>
+            <li>
+                <strong><code>https://www.googleapis.com/auth/drive.metadata.readonly</code></strong>
+                <p><strong>用途：</strong>讀取您 Google Drive 中檔案的元資料（例如檔案名稱與描述）。我們利用此權限來尋找並儲存 Web App 的 URL，以便後續連線測試。</p>
+            </li>
+        </ul>
+
+        <h2>資料儲存與安全性</h2>
+        <p>Vibe Sheets 的核心設計理念是<strong>去中心化與使用者自主</strong>。我們強調以下幾點：</p>
+        <ul>
+            <li><strong>純前端運作：</strong>本應用程式完全在您的瀏覽器中執行。除了與 Google API 的直接通訊外，沒有任何資料會被傳送到我們的伺服器。</li>
+            <li><strong>無資料儲存：</strong>我們不會儲存您的個人資訊、Google 帳號資料，或是您產生的任何檔案內容。</li>
+            <li><strong>Token 安全性：</strong>您的 Google OAuth Access Token 僅儲存在瀏覽器的記憶體中，用於當前的連線階段。關閉分頁後，Token 即會消失。</li>
+        </ul>
+
+        <h2>聯絡我們</h2>
+        <p>若您對此隱私權政策有任何疑問，歡迎透過我們的 GitHub 專案頁面提出 Issue。</p>
+        <a href="https://github.com/GlennJong/vibe-sheets" target="_blank" rel="noopener noreferrer">
+          Contact via GitHub
+        </a>
+    </div>
+
+    <div class="footer">
+        <p>&copy; 2026 Vibe Sheets. Released under the MIT License. </p>
+    </div>
+</body>
+</html>
