@@ -52,7 +52,7 @@
 <body>
     <div class="container">
         <h1>Vibe Sheets Privacy Policy & Google OAuth Scopes</h1>
-        <p><strong>Last Updated: January 7, 2026</strong></p>
+        <p><strong>Last Updated: January 13, 2026</strong></p>
 
         <h2>Introduction</h2>
         <p>Vibe Sheets is a client-side development tool designed to help you quickly create simple databases using Google Sheets. To achieve this, we require your authorization for specific Google API scopes via Google's OAuth 2.0 mechanism. This document details the permissions we request and their purpose.</p>
@@ -82,6 +82,25 @@
             </li>
         </ul>
 
+        <h2>How We Access and Use Your Data</h2>
+        <p>To provide its services, Vibe Sheets interacts with Google APIs. Below is a clear breakdown of what data we access and how we use it.</p>
+
+        <h3>Data We Access</h3>
+        <p>Vibe Sheets accesses the following types of data from your Google Account:</p>
+        <ul>
+            <li><strong>Google Spreadsheets:</strong> We access spreadsheets that you create through our application. This includes the ability to create new sheets, and read/write data to them.</li>
+            <li><strong>Google Apps Script Projects:</strong> We create Apps Script projects that are bound to the spreadsheets you create. This includes the script's code and its properties.</li>
+            <li><strong>Google Drive File Metadata:</strong> We access metadata for files in your Google Drive, such as file names and IDs, to locate the spreadsheets and scripts created by the app.</li>
+        </ul>
+
+        <h3>How We Use Your Data</h3>
+        <p>Your data is used exclusively to enable the core functionality of Vibe Sheets:</p>
+        <ul>
+            <li><strong>To Create Spreadsheets:</strong> The primary function of our app is to generate a new Google Sheet that acts as a simple database.</li>
+            <li><strong>To Automate APIs:</strong> We create and deploy a Google Apps Script, which turns your spreadsheet into a web-based API that can return JSON data.</li>
+            <li><strong>To Locate and Manage Files:</strong> We use Drive API access to find the files created by the app so you can manage them easily.</li>
+        </ul>
+
         <h2>Data Storage and Security</h2>
         <p>The core design philosophy of Vibe Sheets is <strong>decentralization and user control</strong>. We emphasize the following:</p>
         <ul>
@@ -99,7 +118,7 @@
 
     <div class="container">
         <h1>Vibe Sheets 隱私權與 Google OAuth 權限說明</h1>
-        <p><strong>最後更新日期：2026年1月7日</strong></p>
+        <p><strong>最後更新日期：2026年1月13日</strong></p>
 
         <h2>前言</h2>
         <p>Vibe Sheets 是一個純前端開發工具，旨在協助您快速建立以 Google Sheets 為基礎的簡易資料庫。為了實現此功能，我們需要透過 Google 的 OAuth 2.0 機制，請求您授權特定的 Google API 權限。本文件將詳細說明我們請求的權限以及其用途。</p>
@@ -127,6 +146,25 @@
                 <strong><code>https://www.googleapis.com/auth/drive.metadata.readonly</code></strong>
                 <p><strong>用途：</strong>讀取您 Google Drive 中檔案的元資料（例如檔案名稱與描述）。我們利用此權限來尋找並儲存 Web App 的 URL，以便後續連線測試。</p>
             </li>
+        </ul>
+
+        <h2>我們如何存取與使用您的資料</h2>
+        <p>為了提供服務，Vibe Sheets 會與 Google API 互動。以下清楚說明我們存取的資料以及其使用方式。</p>
+
+        <h3>我們存取的資料</h3>
+        <p>Vibe Sheets 會從您的 Google 帳戶存取以下類型的資料：</p>
+        <ul>
+            <li><strong>Google 試算表：</strong> 我們會存取您透過本應用程式建立的試算表。這包括建立新試算表以及讀寫其中資料的能力。</li>
+            <li><strong>Google Apps Script 專案：</strong> 我們會建立與您所建試算表綁定的 Apps Script 專案。這包括腳本的程式碼及其屬性。</li>
+            <li><strong>Google Drive 檔案元資料：</strong> 我們會存取您 Google Drive 中檔案的元資料（例如檔案名稱和 ID），以定位由本應用程式建立的試算表和腳本。</li>
+        </ul>
+
+        <h3>我們如何使用您的資料</h3>
+        <p>您的資料僅用於實現 Vibe Sheets 的核心功能：</p>
+        <ul>
+            <li><strong>建立試算表：</strong> 本應用的主要功能是產生一個可作為簡易資料庫的 Google 試算表。</li>
+            <li><strong>自動化 API：</strong> 我們會建立並部署一個 Google Apps Script，將您的試算表轉換為一個可回傳 JSON 資料的網路 API。</li>
+            <li><strong>定位與管理檔案：</strong> 我們使用 Drive API 權限來尋找由本應用程式建立的檔案，以便您輕鬆管理它們。</li>
         </ul>
 
         <h2>資料儲存與安全性</h2>

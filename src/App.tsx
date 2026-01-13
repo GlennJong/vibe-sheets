@@ -95,8 +95,17 @@ const App: React.FC = () => {
             <Callout.Icon>
                 <ExclamationTriangleIcon />
             </Callout.Icon>
-            <Callout.Text>
-                {currentError}
+            <Callout.Text style={{ wordBreak: 'break-word' }}>
+                {currentError.includes('https://') ? (
+                    <span dangerouslySetInnerHTML={{ 
+                        __html: currentError.replace(
+                            /(https:\/\/[^\s]+)/g, 
+                            '<a href="$1" target="_blank" rel="noopener noreferrer" style="text-decoration: underline; font-weight: bold;">$1</a>'
+                        ) 
+                    }} />
+                ) : (
+                    currentError
+                )}
             </Callout.Text>
         </Callout.Root>
       )}
