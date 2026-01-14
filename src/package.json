@@ -1,0 +1,24 @@
+{
+  "name": "@glennjong/vibe-sheets",
+  "version": "0.1.0",
+  "description": "Core SDK for Vibe Sheets",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup index.ts --format cjs,esm --dts",
+    "dev": "tsup index.ts --format cjs,esm --dts --watch"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/react": "^19.2.8",
+    "react": "^19.2.3",
+    "tsup": "^8.0.0",
+    "typescript": "^5.0.0"
+  }
+}
