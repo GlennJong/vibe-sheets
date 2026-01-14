@@ -31,7 +31,6 @@ jobs:
           yarn build
         env:
           VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
-          VITE_MASTER_SCRIPT_URL: ${{ secrets.VITE_MASTER_SCRIPT_URL }}
         
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
