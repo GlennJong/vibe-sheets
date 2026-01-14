@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import type { CreationResponse, DriveFile } from '../types';
-
-const MASTER_SCRIPT_URL = import.meta.env['VITE_MASTER_SCRIPT_URL'];
+import * as GoogleApi from '../utils/googleApi';
 
 export const useSheetManager = (accessToken: string | null) => {
   const [loading, setLoading] = useState<boolean>(false);
@@ -25,16 +24,38 @@ export const useSheetManager = (accessToken: string | null) => {
     
     try {
       const fullName = `vibesheet-${sheetName}`;
-      const targetUrl = `${MASTER_SCRIPT_URL}?token=${accessToken}&name=${encodeURIComponent(fullName)}`;
       
-      const res = await fetch(targetUrl);
-      if (!res.ok) throw new Error('網路請求失敗');
-      
-      const data: CreationResponse = await res.json();
-      if (data.error) throw new Error(data.error);
+      // 1. Create Spreadsheet
+      const { id: spreadsheetId, spreadsheetUrl } = await GoogleApi.createUserSpreadsheet(accessToken, fullName);
 
-      setCreationResult(data);
+      // 2. Create Script Project
+      const scriptId = await GoogleApi.createScriptProject(accessToken, spreadsheetId, fullName);
+
+      // 3. Update Script Content
+      await GoogleApi.updateScriptContent(accessToken, scriptId);
+
+      // 4. Deploy as Web App
+      const deploymentUrl = await GoogleApi.deployAsWebApp(accessToken, scriptId);
+
+      // 5. Update File Description
+      const metaData = JSON.stringify({
+        scriptId: scriptId,
+        scriptUrl: deploymentUrl
+      });
+      await GoogleApi.updateFileDescription(accessToken, spreadsheetId, metaData);
+
+      const manualAuthTip = '請用擁有者 Google 帳號在瀏覽器開啟 scriptUrl 並完成授權，否則匿名存取會被 Google 拒絕 (403)。';
+
+      setCreationResult({
+        success: true,
+        spreadsheetUrl,
+        spreadsheetId,
+        scriptUrl: deploymentUrl,
+        tip: manualAuthTip
+      });
+
     } catch (err: any) {
+      console.error(err);
       setError(err.message || '建立資源時發生未知錯誤');
     } finally {
       setLoading(false);
