@@ -9,6 +9,10 @@
   "scripts": {
     "dev": "npm run dev --workspace=app",
     "build": "npm run build --workspaces",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "sdk:bump:patch": "npm version patch --workspace=src",
+    "sdk:bump:minor": "npm version minor --workspace=src",
+    "sdk:bump:major": "npm version major --workspace=src",
+    "sdk:publish": "npm run build --workspace=src && npm publish --workspace=src"
   }
 }
