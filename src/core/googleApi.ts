@@ -11,7 +11,72 @@ const getHeaders = (token: string) => ({
   'Content-Type': 'application/json'
 });
 
-export async function createUserSpreadsheet(token: string, title: string) {
+export interface ColumnDefinition {
+  name: string;
+  type: 'string' | 'number' | 'boolean';
+}
+
+export async function createUserSpreadsheet(
+  token: string, 
+  title: string, 
+  userColumns: ColumnDefinition[] = []
+) {
+  
+  const defaultColumns: ColumnDefinition[] = [
+      { name: "id", type: "string" },
+      { name: "created_at", type: "string" },
+      { name: "updated_at", type: "string" }
+  ];
+
+  // 若使用者未提供欄位，維持舊有的預設欄位以相容 (可視需求調整)
+  const columnsToUse = userColumns.length > 0 
+      ? userColumns 
+      : [
+          { name: "name", type: "string" },
+          { name: "description", type: "string" },
+          { name: "status", type: "string" }
+        ] as ColumnDefinition[];
+
+  // 合併: id + created_at + updated_at + userColumns
+  // 注意：這裡將 userColumns 放在最後
+  const allColumns = [...defaultColumns, ...columnsToUse];
+
+  // 產生標題列
+  const headerRow = {
+    values: allColumns.map(col => ({
+      userEnteredValue: { stringValue: col.name }
+    }))
+  };
+
+  // 產生範例資料列
+  const demoRow = {
+    values: allColumns.map(col => {
+      let val: any = "";
+      if (col.name === "id") val = "demo_01";
+      else if (col.name === "created_at" || col.name === "updated_at") val = new Date().toISOString();
+      else {
+          switch(col.type) {
+              case 'number': val = 123; break;
+              case 'boolean': val = true; break;
+              case 'string': val = "demo_content"; break;
+              default: val = "";
+          }
+          // 針對舊有預設欄位的特定值
+          if (col.name === "name") val = "範例項目";
+          if (col.name === "description") val = "請在第一列↑定義欄位名稱(Key)，從第二列開始輸入您的資料。";
+          if (col.name === "status") val = "active";
+      }
+      
+      if (typeof val === 'boolean') {
+          return { userEnteredValue: { boolValue: val } };
+      } else if (typeof val === 'number') {
+          return { userEnteredValue: { numberValue: val } };
+      } else {
+          return { userEnteredValue: { stringValue: String(val) } };
+      }
+    })
+  };
+
   // 設定初始表格內容
   const sheetsConfig = [
     {
@@ -21,24 +86,8 @@ export async function createUserSpreadsheet(token: string, title: string) {
           startRow: 0,
           startColumn: 0,
           rowData: [
-            // Row 1: Headers (Keys)
-            {
-              values: [
-                { userEnteredValue: { stringValue: "id" } },
-                { userEnteredValue: { stringValue: "name" } },
-                { userEnteredValue: { stringValue: "description" } },
-                { userEnteredValue: { stringValue: "status" } }
-              ]
-            },
-            // Row 2: Example Content
-            {
-              values: [
-                { userEnteredValue: { stringValue: "demo_01" } },
-                { userEnteredValue: { stringValue: "範例項目" } },
-                { userEnteredValue: { stringValue: "請在第一列↑定義欄位名稱(Key)，從第二列開始輸入您的資料。" } },
-                { userEnteredValue: { stringValue: "active" } }
-              ]
-            }
+             headerRow,
+             demoRow
           ]
         }
       ]
@@ -87,8 +136,7 @@ export async function updateScriptContent(token: string, scriptId: string) {
   const manifest = {
     timeZone: "Asia/Taipei",
     oauthScopes: [
-      "https://www.googleapis.com/auth/spreadsheets.currentonly",
-      "https://www.googleapis.com/auth/spreadsheets"
+      "https://www.googleapis.com/auth/spreadsheets.currentonly"
     ],
     runtimeVersion: "V8",
     webapp: { access: "ANYONE_ANONYMOUS", executeAs: "USER_DEPLOYING" }

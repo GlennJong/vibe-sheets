@@ -26,7 +26,16 @@ export const useSheetManager = (accessToken: string | null) => {
       const fullName = `vibesheet-${sheetName}`;
       
       // 1. Create Spreadsheet
-      const { id: spreadsheetId, spreadsheetUrl } = await VibeSheetsApi.createUserSpreadsheet(accessToken, fullName);
+      const { id: spreadsheetId, spreadsheetUrl } = await VibeSheetsApi.createUserSpreadsheet(
+        accessToken,
+        fullName,
+        [
+          { name: 'id', type: 'string' },
+          { name: 'name', type: 'string' },
+          { name: 'value', type: 'number' },
+          { name: 'value', type: 'number' },
+        ]
+      );
 
       // 2. Create Script Project
       const scriptId = await VibeSheetsApi.createScriptProject(accessToken, spreadsheetId, fullName);
