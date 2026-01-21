@@ -276,7 +276,7 @@ export const useSheetManager = (accessToken: string | null) => {
     }
   };
 
-  const updateTestData = async (file: DriveFile) => {
+  const updateTestData = async (file: DriveFile, targetIdInput?: string) => {
     if (!accessToken) return;
     setLoading(true);
     setTestData('');
@@ -296,25 +296,30 @@ export const useSheetManager = (accessToken: string | null) => {
       
       const noCacheUrl = `${scriptUrl}${scriptUrl.includes('?') ? '&' : '?'}t=${new Date().getTime()}`;
 
-      // 2. Fetch current data first to find an ID to update
-      const getRes = await fetch(noCacheUrl);
-      if (!getRes.ok) throw new Error('無法讀取現有資料以進行更新');
-      const getResult = await getRes.json();
-      
-      if (!getResult.data || !Array.isArray(getResult.data) || getResult.data.length === 0) {
-          throw new Error('表格目前是空的，請先新增資料再測試更新。');
-      }
+      let targetId = targetIdInput;
+      let targetitem: any = {};
 
-      // Pick the first item to update
-      const targetitem = getResult.data[0];
-      const targetId = targetitem.id;
-      
-      if (!targetId) throw new Error('資料中找不到 id 欄位，無法進行更新');
+      if (!targetId) {
+        // 2. Fetch current data first to find an ID to update
+        const getRes = await fetch(noCacheUrl);
+        if (!getRes.ok) throw new Error('無法讀取現有資料以進行更新');
+        const getResult = await getRes.json();
+        
+        if (!getResult.data || !Array.isArray(getResult.data) || getResult.data.length === 0) {
+            throw new Error('表格目前是空的，請先新增資料再測試更新。');
+        }
+
+        // Pick the first item to update
+        targetitem = getResult.data[0];
+        targetId = targetitem.id;
+        
+        if (!targetId) throw new Error('資料中找不到 id 欄位，無法進行更新');
+      }
 
       // 3. Perform Update
       const updatePayload = {
           id: targetId,
-          name: `${targetitem.name || 'Item'} (Updated ${new Date().toLocaleTimeString()})`,
+          name: targetIdInput ? `Updated via ID input` : `${targetitem?.name || 'Item'} (Updated ${new Date().toLocaleTimeString()})`,
           value: Math.floor(Math.random() * 9999)
       };
 

@@ -140,7 +140,7 @@ export async function createUserSpreadsheet(
                   startRowIndex: 1, 
                   startColumnIndex: col.index,
                   endColumnIndex: col.index + 1,
-                  endRowIndex: 50 // Limit initial validation to 50 rows to avoid clutter/performance issues
+                  endRowIndex: 2 // Only apply to the initial demo row (row index 1)
               },
               rule: {
                   condition: { type: "BOOLEAN" },

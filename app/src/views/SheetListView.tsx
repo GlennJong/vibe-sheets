@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Card, Flex, Button, Heading, Text, ScrollArea, Box, Code, Dialog, TextField } from '@radix-ui/themes';
-import { ExternalLinkIcon, ArrowLeftIcon, LightningBoltIcon, Cross2Icon, ClipboardCopyIcon, CheckCircledIcon, MagnifyingGlassIcon } from '@radix-ui/react-icons';
+import { ExternalLinkIcon, ArrowLeftIcon, LightningBoltIcon, Cross2Icon, MagnifyingGlassIcon } from '@radix-ui/react-icons';
 import type { DriveFile } from '../types';
 import { AuthWarning } from '../components/AuthWarning';
 import { openAuthPopup, getScriptUrlFromDescription } from '../utils';
@@ -12,14 +12,140 @@ interface SheetListViewProps {
   onFetch: () => void;
   onTestConnection: (file: DriveFile, fields?: string) => void;
   onAddData: (file: DriveFile, count: number) => void;
-  onUpdateData: (file: DriveFile) => void;
-  onDeleteData: (file: DriveFile) => void;
+  onUpdateData: (file: DriveFile, targetId?: string) => void;
+  onDeleteData: (file: DriveFile, targetId?: string) => void;
   testData: string;
   authUrl: string;
   onCloseTestResult: () => void;
 }
 
-export const SheetListView: React.FC<SheetListViewProps> = ({ 
+const ApiActionDialog: React.FC<{ 
+    trigger: React.ReactNode; 
+    title: string; 
+    method: string; 
+    url: string; 
+    body?: any;
+    isGet?: boolean;
+    onSend: (params?: any) => void; 
+}> = ({ trigger, title, method, url, body, isGet, onSend }) => {
+  const [open, setOpen] = useState(false);
+  const [fields, setFields] = useState('');
+  const [targetId, setTargetId] = useState('');
+
+  const isPut = url.includes('method=PUT');
+  const isDelete = url.includes('method=DELETE');
+  const showIdInput = isPut || isDelete; // Show input for both PUT and DELETE
+
+  const displayUrl = isGet && fields.trim() 
+    ? `${url}${url.includes('?') ? '&' : '?'}fields=${encodeURIComponent(fields.trim())}`
+    : url;
+
+  const displayBody = React.useMemo(() => {
+    if (!body) return undefined;
+    if (showIdInput && targetId) {
+        return { ...body, id: targetId };
+    }
+    return body;
+  }, [body, showIdInput, targetId]);
+
+  const handleSend = () => {
+    if (isGet) {
+        onSend(fields);
+    } else if (showIdInput) {
+        onSend(targetId);
+    } else {
+        onSend();
+    }
+    setOpen(false);
+  };
+
+  return (
+    <Dialog.Root open={open} onOpenChange={setOpen}>
+      <Dialog.Trigger>{trigger}</Dialog.Trigger>
+      <Dialog.Content maxWidth="500px">
+        <Dialog.Title size="3">{title}</Dialog.Title>
+        
+        <Flex direction="column" gap="3" mt="3">
+          <Box>
+              <Text size="2" weight="bold" color="gray">Method</Text>
+              <Flex align="center" gap="2" mt="1">
+                  <Code variant="solid" color={method === 'GET' ? 'blue' : 'green'}>{method}</Code>
+              </Flex>
+          </Box>
+
+          <Box>
+              <Text size="2" weight="bold" color="gray">URL</Text>
+              <Box mt="1" p="2" style={{ background: 'var(--gray-3)', borderRadius: 'var(--radius-2)', wordBreak: 'break-all' }}>
+                  <Code variant="ghost" size="1">{displayUrl}</Code>
+              </Box>
+          </Box>
+
+          {isGet && (
+              <Box>
+                  <Text size="2" weight="bold" color="gray">Fields Filter (Optional)</Text>
+                  <Box mt="1">
+                    <TextField.Root 
+                        placeholder="e.g. name,value" 
+                        value={fields}
+                        onChange={(e) => setFields(e.target.value)}
+                    >
+                        <TextField.Slot>
+                            <MagnifyingGlassIcon height="16" width="16" />
+                        </TextField.Slot>
+                    </TextField.Root>
+                    <Text size="1" color="gray" mt="1" style={{ display: 'block' }}>
+                        輸入欲回傳的欄位，留空則回傳全部
+                    </Text>
+                  </Box>
+              </Box>
+          )}
+
+          {showIdInput && (
+              <Box>
+                  <Text size="2" weight="bold" color="gray">Target ID (Optional)</Text>
+                  <Box mt="1">
+                    <TextField.Root 
+                        placeholder="Paste target ID here (Leave empty to auto-pick)" 
+                        value={targetId}
+                        onChange={(e) => setTargetId(e.target.value)}
+                    >
+                        <TextField.Slot>
+                            <MagnifyingGlassIcon height="16" width="16" />
+                        </TextField.Slot>
+                    </TextField.Root>
+                    <Text size="1" color="gray" mt="1" style={{ display: 'block' }}>
+                        指定要操作的 ID。若留空，將由系統自動選取一筆測試。
+                    </Text>
+                  </Box>
+              </Box>
+          )}
+
+          {displayBody && (
+              <Box>
+                  <Text size="2" weight="bold" color="gray">{showIdInput ? "Request Body Preview" : "Request Body Example"}</Text>
+                  <Box mt="1" p="2" style={{ background: 'var(--gray-3)', borderRadius: 'var(--radius-2)' }}>
+                      <Code variant="ghost" size="1" style={{ whiteSpace: 'pre-wrap', display: 'block' }}>
+                          {JSON.stringify(displayBody, null, 2)}
+                      </Code>
+                  </Box>
+              </Box>
+          )}
+        </Flex>
+
+        <Flex justify="end" gap="3" mt="4">
+          <Dialog.Close>
+              <Button variant="soft" color="gray" style={{ cursor: 'pointer' }}>Cancel</Button>
+          </Dialog.Close>
+          <Button onClick={handleSend} style={{ cursor: 'pointer' }}>
+              <LightningBoltIcon /> Send Request
+          </Button>
+        </Flex>
+      </Dialog.Content>
+    </Dialog.Root>
+  );
+};
+
+export const SheetListView: React.FC<SheetListViewProps> = ({  
   files, 
   loading, 
   onBack, 
@@ -32,58 +158,16 @@ export const SheetListView: React.FC<SheetListViewProps> = ({
   authUrl,
   onCloseTestResult
 }) => {
-  const [showCopyDialog, setShowCopyDialog] = useState(false);
-  const [fieldsFilter, setFieldsFilter] = useState('');
+  // Global filter removed
   
   useEffect(() => {
     onFetch();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleCopyUrl = (file: DriveFile) => {
-    const url = getScriptUrlFromDescription(file.description);
-    if (url) {
-        navigator.clipboard.writeText(url).then(() => {
-            setShowCopyDialog(true);
-        }).catch(err => {
-            console.error('Failed to copy: ', err);
-            // Fallback for failure can still be an alert lightly, or we can add an error state
-            alert("複製失敗，請手動複製");
-        });
-    }
-  };
-
   return (
     <Flex direction="column" gap="4" width="100%">
       
-      {/* Success Dialog */}
-      <Dialog.Root open={showCopyDialog} onOpenChange={setShowCopyDialog}>
-        <Dialog.Content maxWidth="450px">
-          <Dialog.Title>
-            <Flex align="center" gap="2">
-              <CheckCircledIcon color="green" width="24" height="24" />
-              拷貝成功
-            </Flex>
-          </Dialog.Title>
-          <Dialog.Description size="2" mb="4">
-            <Text size="3" color="gray" align="center">
-              現在你可以透過這個 url 取得 JSON data！祝開發愉快！
-            </Text>
-            <br />
-            <Text size="1" color="red" align="center">
-              注意：請勿將此連結分享給其他人，任何人都將可以透過此 url 取得你的資料！
-            </Text>
-          </Dialog.Description>
-          <Flex gap="3" mt="4" justify="end">
-            <Dialog.Close>
-              <Button variant="soft" color="gray" style={{ cursor: 'pointer' }}>
-                關閉
-              </Button>
-            </Dialog.Close>
-          </Flex>
-        </Dialog.Content>
-      </Dialog.Root>
-
       <Flex justify="between" align="center">
         <Heading size="4">您的表格 (vibesheet-*)</Heading>
         <Button size="2" variant="ghost" onClick={onBack} style={{ cursor: 'pointer' }}>
@@ -91,6 +175,7 @@ export const SheetListView: React.FC<SheetListViewProps> = ({
         </Button>
       </Flex>
       
+      {/* Test Data Display */}
       {testData && (
         <Card size="2" style={{ backgroundColor: 'var(--gray-2)' }}>
           <Flex justify="between" align="center" mb="2">
@@ -109,23 +194,6 @@ export const SheetListView: React.FC<SheetListViewProps> = ({
         </Card>
       )}
 
-      <Card size="2">
-          <Flex gap="3" align="center">
-             <Text size="2" weight="bold">API 欄位篩選測試：</Text>
-             <Box flexGrow="1">
-                <TextField.Root 
-                    placeholder="輸入欲回傳的欄位，例如: name,value (留空則回傳全部)" 
-                    value={fieldsFilter}
-                    onChange={(e) => setFieldsFilter(e.target.value)}
-                >
-                    <TextField.Slot>
-                        <MagnifyingGlassIcon height="16" width="16" />
-                    </TextField.Slot>
-                </TextField.Root>
-             </Box>
-          </Flex>
-      </Card>
-
       {authUrl && (
         <AuthWarning authUrl={authUrl} onOpenAuth={openAuthPopup} />
       )}
@@ -140,87 +208,87 @@ export const SheetListView: React.FC<SheetListViewProps> = ({
             <Text align="center" color="gray">沒有找到相關表格</Text>
           ) : (
             files.map(file => {
-               const hasScript = !!getScriptUrlFromDescription(file.description);
+               const rawScriptUrl = getScriptUrlFromDescription(file.description);
+               // Mock URLs for display if missing
+               const scriptUrl = rawScriptUrl || 'https://script.google.com/macros/s/.../exec';
+               
                return (
                 <Card key={file.id} size="2">
                     <Flex justify="between" align="center" wrap="wrap" gap="2">
                     <Flex direction="column" gap="1">
-                      <Flex justify="between" align="center" wrap="wrap" gap="2">
-                        <Text weight="bold">
-                          {file.name}
-                        </Text>
-                        {hasScript && (
-                          <Button
-                              size="1"
-                              variant="outline"
-                              onClick={() => handleCopyUrl(file)}
-                              style={{ cursor: 'pointer' }}
-                          >
-                              <ClipboardCopyIcon />
-                          </Button>
-                        )}
-
-                        <Button 
-                            size="1" 
-                            variant="outline" 
-                            asChild
-                            style={{ cursor: 'pointer' }}
-                        >
-                            <a href={file.webViewLink} target="_blank" rel="noopener noreferrer">
-                                <ExternalLinkIcon />
-                            </a>
-                        </Button>
-                      </Flex>
+                         <Flex align="center" gap="2">
+                            <Text weight="bold">{file.name}</Text>
+                            <Button 
+                                size="1" 
+                                variant="ghost" 
+                                asChild
+                                title="Open Sheet"
+                                style={{ cursor: 'pointer' }}
+                            >
+                                <a href={file.webViewLink} target="_blank" rel="noopener noreferrer">
+                                    <ExternalLinkIcon />
+                                </a>
+                            </Button>
+                        </Flex>
                         <Text size="1" color="gray">ID: {file.id.substring(0, 10)}...</Text>
                     </Flex>
                     
-                    <Flex gap="2">
-                        <Button 
-                            size="2" 
-                            variant="soft" 
-                            onClick={() => onTestConnection(file, fieldsFilter)}
-                            style={{ cursor: 'pointer' }}
-                        >
-                            <LightningBoltIcon /> GET
-                        </Button>
-                        <Button 
-                            size="2" 
-                            variant="soft" 
-                            color="cyan"
-                            onClick={() => onAddData(file, 1)}
-                            style={{ cursor: 'pointer' }}
-                        >
-                            <LightningBoltIcon /> 新增1筆
-                        </Button>
-                        <Button 
-                            size="2" 
-                            variant="soft" 
-                            color="cyan"
-                            onClick={() => onAddData(file, 5)}
-                            style={{ cursor: 'pointer' }}
-                        >
-                            <LightningBoltIcon /> 新增5筆
-                        </Button>
+                    <Flex gap="3" align="center" wrap="wrap">
+                        {/* GET */}
+                        <ApiActionDialog 
+                            trigger={
+                                <Button size="2" variant="soft" style={{ cursor: 'pointer' }}>
+                                    <LightningBoltIcon /> 讀取
+                                </Button>
+                            }
+                            title="API: Read List"
+                            method="GET"
+                            url={scriptUrl}
+                            isGet={true}
+                            onSend={(fields) => onTestConnection(file, fields)}
+                        />
 
-                        <Button 
-                            size="2" 
-                            variant="soft" 
-                            color="plum"
-                            onClick={() => onUpdateData(file)}
-                            style={{ cursor: 'pointer' }}
-                        >
-                            <LightningBoltIcon /> 更新第1筆
-                        </Button>
+                        {/* CREATE */}
+                        <ApiActionDialog 
+                            trigger={
+                                <Button size="2" variant="soft" color="cyan" style={{ cursor: 'pointer' }}>
+                                    <LightningBoltIcon /> 新增
+                                </Button>
+                            }
+                            title="API: Create Item"
+                            method="POST"
+                            url={scriptUrl}
+                            body={[{ name: "Test Item...", value: 123 }]}
+                            onSend={() => onAddData(file, 1)}
+                        />
 
-                        <Button 
-                            size="2" 
-                            variant="soft" 
-                            color="red"
-                            onClick={() => onDeleteData(file)}
-                            style={{ cursor: 'pointer' }}
-                        >
-                            <LightningBoltIcon /> 刪除第1筆
-                        </Button>
+                        {/* UPDATE */}
+                        <ApiActionDialog 
+                            trigger={
+                                <Button size="2" variant="soft" color="plum" style={{ cursor: 'pointer' }}>
+                                    <LightningBoltIcon /> 更新
+                                </Button>
+                            }
+                            title="API: Update Item"
+                            method="POST"
+                            url={`${scriptUrl}?method=PUT`}
+                            body={{ id: "<target_id>", name: "Updated...", value: 456 }}
+                            onSend={(id) => onUpdateData(file, id)}
+                        />
+                        
+                        {/* DELETE */}
+                        <ApiActionDialog 
+                            trigger={
+                                <Button size="2" variant="soft" color="red" style={{ cursor: 'pointer' }}>
+                                    <LightningBoltIcon /> 刪除
+                                </Button>
+                            }
+                            title="API: Delete Item"
+                            method="POST"
+                            url={`${scriptUrl}?method=DELETE`}
+                            body={{ id: "<target_id>" }}
+                            onSend={() => onDeleteData(file)} // If you supported DELETE: onSend={(id) => onDeleteData(file, id)}
+                        />
                     </Flex>
                     </Flex>
                 </Card>

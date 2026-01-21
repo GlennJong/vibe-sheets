@@ -90,8 +90,63 @@ export const APPS_SCRIPT_CODE = {
         // --- UPDATE Logic ---
         if (action === 'PUT' || action === 'UPDATE') {
            var updateData;
-           // ... (UPDATE logic)
-           // (omitted for brevity, assume existing update logic wraps correctly)
+           try {
+              updateData = JSON.parse(e.postData.contents);
+           } catch (err) {
+              return createJsonResponse({ error: 'Invalid JSON for update', debug: err.toString() });
+           }
+           
+           if (!updateData.id) {
+               return createJsonResponse({ error: 'Update requires an "id" field' });
+           }
+
+           var lastRow = sheet.getLastRow();
+           var lastCol = sheet.getLastColumn();
+           if (lastRow <= 1) return createJsonResponse({ error: 'No data to update' });
+           
+           var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+           var idIndex = headers.indexOf('id');
+           
+           if (idIndex === -1) return createJsonResponse({ error: 'Sheet needs an "id" column' });
+           
+           // Find Row by ID
+           var allIds = sheet.getRange(2, idIndex + 1, lastRow - 1, 1).getValues().map(function(r) { return r[0]; });
+           var rowIndex = -1;
+           for (var i = 0; i < allIds.length; i++) {
+               if (String(allIds[i]) === String(updateData.id)) {
+                   rowIndex = i + 2; 
+                   break;
+               }
+           }
+           
+           if (rowIndex === -1) {
+               return createJsonResponse({ error: 'ID not found: ' + updateData.id });
+           }
+           
+           // Update Fields
+           var updatedFields = [];
+           Object.keys(updateData).forEach(function(key) {
+               if (key === 'id') return; // Don't update ID
+               
+               var colIndex = headers.indexOf(key);
+               if (colIndex !== -1) {
+                   sheet.getRange(rowIndex, colIndex + 1).setValue(updateData[key]);
+                   updatedFields.push(key);
+               }
+           });
+           
+           // Update updated_at
+           var updatedAtIndex = headers.indexOf('updated_at');
+           if (updatedAtIndex !== -1) {
+               sheet.getRange(rowIndex, updatedAtIndex + 1).setValue(new Date().toISOString());
+           }
+           
+           return createJsonResponse({ 
+               status: 'success', 
+               message: 'Row updated', 
+               updatedFields: updatedFields,
+               id: updateData.id 
+           });
         }
 
         // --- DELETE Logic (Soft Delete) ---
@@ -244,19 +299,34 @@ export const APPS_SCRIPT_CODE = {
 
             var startRow = lastRowWithData + 1;
             
+            // data: newRows is already prepared
+            var startRow = lastRowWithData + 1;
+            
             // setValues 需要二維陣列，且大小需完全符合 Range
             sheet.getRange(startRow, 1, newRows.length, newRows[0].length).setValues(newRows);
             
-            // 如果新增加的行原本沒有 Checkbox (因為超過了預設 Range)，我們可以在這裡補上
-            // 假設 is_enabled 是第一欄 (index 0)
-            if (headers.indexOf('is_enabled') === 0) {
-                var range = sheet.getRange(startRow, 1, newRows.length, 1);
-                var rule = SpreadsheetApp.newDataValidation()
-                  .requireCheckbox()
-                  .setAllowInvalid(false)
-                  .build();
-                range.setDataValidation(rule);
-            }
+            // 動態為新增的資料列設定 Checkbox 驗證
+            // 針對 is_enabled 欄位，或任何值為 boolean 的欄位自動套用 Checkbox
+            headers.forEach(function(header, idx) {
+                var isBooleanCol = (header === 'is_enabled');
+                
+                // 若不是 is_enabled，檢查首筆資料該欄位是否為 boolean (簡易自動判斷)
+                if (!isBooleanCol && newRows.length > 0) {
+                    var sampleVal = newRows[0][idx];
+                    if (typeof sampleVal === 'boolean') {
+                        isBooleanCol = true;
+                    }
+                }
+
+                if (isBooleanCol) {
+                    var range = sheet.getRange(startRow, idx + 1, newRows.length, 1);
+                    var rule = SpreadsheetApp.newDataValidation()
+                      .requireCheckbox()
+                      .setAllowInvalid(false)
+                      .build();
+                    range.setDataValidation(rule);
+                }
+            });
         }
         
         // 5. 回傳成功訊息
