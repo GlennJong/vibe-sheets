@@ -22,24 +22,38 @@ export async function createUserSpreadsheet(
   userColumns: ColumnDefinition[] = []
 ) {
   
-  const defaultColumns: ColumnDefinition[] = [
+  // 1. Column Merging Logic
+  // Enforce structure: is_enabled (First) -> User Columns -> id, created_at, updated_at (End)
+  
+  const fixedStart: ColumnDefinition[] = [
+      { name: "is_enabled", type: "boolean" }
+  ];
+
+  const fixedEnd: ColumnDefinition[] = [
       { name: "id", type: "string" },
       { name: "created_at", type: "string" },
       { name: "updated_at", type: "string" }
   ];
 
-  // 若使用者未提供欄位，維持舊有的預設欄位以相容 (可視需求調整)
-  const columnsToUse = userColumns.length > 0 
-      ? userColumns 
-      : [
+  // Filter out any user provided columns that conflict with system columns
+  const customColumns = userColumns.filter(c => 
+    !['is_enabled', 'id', 'created_at', 'updated_at'].includes(c.name)
+  );
+
+  // If no custom columns provided, provide some simple defaults (Legacy support)
+  if (customColumns.length === 0 && userColumns.length === 0) {
+      customColumns.push(
           { name: "name", type: "string" },
           { name: "description", type: "string" },
-          { name: "status", type: "string" }
-        ] as ColumnDefinition[];
+          { name: "value", type: "number" }
+      );
+  }
 
-  // 合併: id + created_at + updated_at + userColumns
-  // 注意：這裡將 userColumns 放在最後
-  const allColumns = [...defaultColumns, ...columnsToUse];
+  const allColumns: ColumnDefinition[] = [
+      ...fixedStart,
+      ...customColumns,
+      ...fixedEnd
+  ];
 
   // 產生標題列
   const headerRow = {
@@ -65,6 +79,7 @@ export async function createUserSpreadsheet(
           if (col.name === "name") val = "範例項目";
           if (col.name === "description") val = "請在第一列↑定義欄位名稱(Key)，從第二列開始輸入您的資料。";
           if (col.name === "status") val = "active";
+          if (col.name === "is_enabled") val = true;
       }
       
       if (typeof val === 'boolean') {
@@ -80,7 +95,7 @@ export async function createUserSpreadsheet(
   // 設定初始表格內容
   const sheetsConfig = [
     {
-      properties: { title: "Sheet1" },
+      properties: { title: "Sheet1", sheetId: 0 }, // Explicitly set sheetId to 0 for referenced updates
       data: [
         {
           startRow: 0,
@@ -109,7 +124,40 @@ export async function createUserSpreadsheet(
   }
 
   const data = await res.json();
-  return { id: data.spreadsheetId, spreadsheetUrl: data.spreadsheetUrl };
+  const spreadsheetId = data.spreadsheetId;
+  const spreadsheetUrl = data.spreadsheetUrl;
+
+  // 2. Setup Data Validation for booleans (Checkbox)
+  const booleanCols = allColumns
+      .map((col, idx) => ({ ...col, index: idx }))
+      .filter(col => col.type === 'boolean');
+  
+  if (booleanCols.length > 0) {
+      const requests = booleanCols.map(col => ({
+          setDataValidation: {
+              range: {
+                  sheetId: 0,
+                  startRowIndex: 1, 
+                  startColumnIndex: col.index,
+                  endColumnIndex: col.index + 1,
+                  endRowIndex: 50 // Limit initial validation to 50 rows to avoid clutter/performance issues
+              },
+              rule: {
+                  condition: { type: "BOOLEAN" },
+                  strict: true,
+                  showCustomUi: true
+              }
+          }
+      }));
+
+      await fetch(`${APIS.SHEETS}/${spreadsheetId}:batchUpdate`, {
+          method: 'POST',
+          headers: getHeaders(token),
+          body: JSON.stringify({ requests })
+      }).catch(e => console.error("Failed to set validation", e));
+  }
+
+  return { id: spreadsheetId, spreadsheetUrl };
 }
 
 export async function createScriptProject(token: string, parentId: string, title: string) {

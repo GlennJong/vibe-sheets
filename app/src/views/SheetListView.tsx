@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Flex, Button, Heading, Text, ScrollArea, Box, Code, Dialog } from '@radix-ui/themes';
-import { ExternalLinkIcon, ArrowLeftIcon, LightningBoltIcon, Cross2Icon, ClipboardCopyIcon, CheckCircledIcon } from '@radix-ui/react-icons';
+import { Card, Flex, Button, Heading, Text, ScrollArea, Box, Code, Dialog, TextField } from '@radix-ui/themes';
+import { ExternalLinkIcon, ArrowLeftIcon, LightningBoltIcon, Cross2Icon, ClipboardCopyIcon, CheckCircledIcon, MagnifyingGlassIcon } from '@radix-ui/react-icons';
 import type { DriveFile } from '../types';
 import { AuthWarning } from '../components/AuthWarning';
 import { openAuthPopup, getScriptUrlFromDescription } from '../utils';
@@ -10,7 +10,10 @@ interface SheetListViewProps {
   loading: boolean;
   onBack: () => void;
   onFetch: () => void;
-  onTestConnection: (file: DriveFile) => void;
+  onTestConnection: (file: DriveFile, fields?: string) => void;
+  onAddData: (file: DriveFile, count: number) => void;
+  onUpdateData: (file: DriveFile) => void;
+  onDeleteData: (file: DriveFile) => void;
   testData: string;
   authUrl: string;
   onCloseTestResult: () => void;
@@ -22,11 +25,15 @@ export const SheetListView: React.FC<SheetListViewProps> = ({
   onBack, 
   onFetch,
   onTestConnection,
+  onAddData,
+  onUpdateData,
+  onDeleteData,
   testData,
   authUrl,
   onCloseTestResult
 }) => {
   const [showCopyDialog, setShowCopyDialog] = useState(false);
+  const [fieldsFilter, setFieldsFilter] = useState('');
   
   useEffect(() => {
     onFetch();
@@ -102,6 +109,23 @@ export const SheetListView: React.FC<SheetListViewProps> = ({
         </Card>
       )}
 
+      <Card size="2">
+          <Flex gap="3" align="center">
+             <Text size="2" weight="bold">API 欄位篩選測試：</Text>
+             <Box flexGrow="1">
+                <TextField.Root 
+                    placeholder="輸入欲回傳的欄位，例如: name,value (留空則回傳全部)" 
+                    value={fieldsFilter}
+                    onChange={(e) => setFieldsFilter(e.target.value)}
+                >
+                    <TextField.Slot>
+                        <MagnifyingGlassIcon height="16" width="16" />
+                    </TextField.Slot>
+                </TextField.Root>
+             </Box>
+          </Flex>
+      </Card>
+
       {authUrl && (
         <AuthWarning authUrl={authUrl} onOpenAuth={openAuthPopup} />
       )}
@@ -121,40 +145,81 @@ export const SheetListView: React.FC<SheetListViewProps> = ({
                 <Card key={file.id} size="2">
                     <Flex justify="between" align="center" wrap="wrap" gap="2">
                     <Flex direction="column" gap="1">
-                        <Text weight="bold">{file.name}</Text>
-                        <Text size="1" color="gray">ID: {file.id.substring(0, 10)}...</Text>
-                    </Flex>
-                    
-                    <Flex gap="2">
+                      <Flex justify="between" align="center" wrap="wrap" gap="2">
+                        <Text weight="bold">
+                          {file.name}
+                        </Text>
                         {hasScript && (
-                            <Button
-                                size="2"
-                                variant="soft"
-                                color="orange"
-                                onClick={() => handleCopyUrl(file)}
-                                style={{ cursor: 'pointer' }}
-                            >
-                                <ClipboardCopyIcon /> 拷貝 URL
-                            </Button>
+                          <Button
+                              size="1"
+                              variant="outline"
+                              onClick={() => handleCopyUrl(file)}
+                              style={{ cursor: 'pointer' }}
+                          >
+                              <ClipboardCopyIcon />
+                          </Button>
                         )}
 
                         <Button 
-                            size="2" 
-                            variant="soft" 
-                            onClick={() => onTestConnection(file)}
-                            style={{ cursor: 'pointer' }}
-                        >
-                            <LightningBoltIcon /> 測試
-                        </Button>
-                        <Button 
-                            size="2" 
+                            size="1" 
                             variant="outline" 
                             asChild
                             style={{ cursor: 'pointer' }}
                         >
                             <a href={file.webViewLink} target="_blank" rel="noopener noreferrer">
-                                <ExternalLinkIcon /> 開啟
+                                <ExternalLinkIcon />
                             </a>
+                        </Button>
+                      </Flex>
+                        <Text size="1" color="gray">ID: {file.id.substring(0, 10)}...</Text>
+                    </Flex>
+                    
+                    <Flex gap="2">
+                        <Button 
+                            size="2" 
+                            variant="soft" 
+                            onClick={() => onTestConnection(file, fieldsFilter)}
+                            style={{ cursor: 'pointer' }}
+                        >
+                            <LightningBoltIcon /> GET
+                        </Button>
+                        <Button 
+                            size="2" 
+                            variant="soft" 
+                            color="cyan"
+                            onClick={() => onAddData(file, 1)}
+                            style={{ cursor: 'pointer' }}
+                        >
+                            <LightningBoltIcon /> 新增1筆
+                        </Button>
+                        <Button 
+                            size="2" 
+                            variant="soft" 
+                            color="cyan"
+                            onClick={() => onAddData(file, 5)}
+                            style={{ cursor: 'pointer' }}
+                        >
+                            <LightningBoltIcon /> 新增5筆
+                        </Button>
+
+                        <Button 
+                            size="2" 
+                            variant="soft" 
+                            color="plum"
+                            onClick={() => onUpdateData(file)}
+                            style={{ cursor: 'pointer' }}
+                        >
+                            <LightningBoltIcon /> 更新第1筆
+                        </Button>
+
+                        <Button 
+                            size="2" 
+                            variant="soft" 
+                            color="red"
+                            onClick={() => onDeleteData(file)}
+                            style={{ cursor: 'pointer' }}
+                        >
+                            <LightningBoltIcon /> 刪除第1筆
                         </Button>
                     </Flex>
                     </Flex>

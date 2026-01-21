@@ -12,7 +12,7 @@ export const useSheetManager = (accessToken: string | null) => {
   const [testData, setTestData] = useState<string>('');
   const [authUrl, setAuthUrl] = useState<string>('');
 
-  const createSheet = async (sheetName: string) => {
+  const createSheet = async (sheetName: string, prefix: string = 'vibesheet-') => {
     if (!accessToken) return;
     if (!sheetName.trim()) {
       setError('請輸入表格名稱');
@@ -23,16 +23,14 @@ export const useSheetManager = (accessToken: string | null) => {
     setCreationResult(null);
     
     try {
-      const fullName = `vibesheet-${sheetName}`;
+      const fullName = `${prefix}${sheetName}`;
       
       // 1. Create Spreadsheet
       const { id: spreadsheetId, spreadsheetUrl } = await VibeSheetsApi.createUserSpreadsheet(
         accessToken,
         fullName,
         [
-          { name: 'id', type: 'string' },
           { name: 'name', type: 'string' },
-          { name: 'value', type: 'number' },
           { name: 'value', type: 'number' },
         ]
       );
@@ -71,7 +69,7 @@ export const useSheetManager = (accessToken: string | null) => {
     }
   };
 
-  const fetchFiles = async () => {
+  const fetchFiles = async (prefix: string = 'vibesheet-') => {
     if (!accessToken) return;
     setLoading(true);
     setError('');
@@ -79,7 +77,7 @@ export const useSheetManager = (accessToken: string | null) => {
     setTestData(''); // clear legacy states
 
     try {
-      const query = "name contains 'vibesheet-' and mimeType = 'application/vnd.google-apps.spreadsheet' and trashed = false";
+      const query = `name contains '${prefix}' and mimeType = 'application/vnd.google-apps.spreadsheet' and trashed = false`;
       const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id, name, webViewLink, description)`;
       
       const res = await fetch(url, {
@@ -101,7 +99,7 @@ export const useSheetManager = (accessToken: string | null) => {
     }
   };
 
-  const testConnection = async (file: DriveFile) => {
+  const testConnection = async (file: DriveFile, fields: string = '') => {
     if (!accessToken) return;
     setLoading(true);
     setTestData('');
@@ -143,7 +141,12 @@ export const useSheetManager = (accessToken: string | null) => {
 
       if (!scriptUrl) throw new Error('無法取得 Script URL');
 
-      const noCacheUrl = `${scriptUrl}${scriptUrl.includes('?') ? '&' : '?'}t=${new Date().getTime()}`;
+      let noCacheUrl = `${scriptUrl}${scriptUrl.includes('?') ? '&' : '?'}t=${new Date().getTime()}`;
+      
+      if (fields && fields.trim()) {
+        noCacheUrl += `&fields=${encodeURIComponent(fields.trim())}`;
+      }
+
       const res = await fetch(noCacheUrl, {
         method: 'GET',
         redirect: 'follow',
@@ -191,6 +194,215 @@ export const useSheetManager = (accessToken: string | null) => {
       setLoading(false);
     }
   };
+
+  const addTestData = async (file: DriveFile, count: number = 1) => {
+    if (!accessToken) return;
+    setLoading(true);
+    setTestData('');
+    setError('');
+    setAuthUrl('');
+
+    let scriptUrl = '';
+
+    try {
+      if (file.description) {
+        try {
+          const meta = JSON.parse(file.description);
+          if (meta.scriptUrl) {
+            scriptUrl = meta.scriptUrl;
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      }
+
+      if (!scriptUrl) {
+        // Fallback search logic (duplicated from testConnection for safety)
+        const q = `'${file.id}' in parents and mimeType = 'application/vnd.google-apps.script' and trashed = false`;
+        const driveUrl = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id,name)`;
+        const driveRes = await fetch(driveUrl, { headers: { Authorization: `Bearer ${accessToken}` } });
+        if (!driveRes.ok) throw new Error('無法搜尋關聯的 Apps Script');
+        const driveData = await driveRes.json();
+        if (!driveData.files || driveData.files.length === 0) throw new Error('找不到關聯的 Script');
+        const scriptId = driveData.files[0].id;
+
+        const deployUrl = `https://script.googleapis.com/v1/projects/${scriptId}/deployments`;
+        const deployRes = await fetch(deployUrl, { headers: { Authorization: `Bearer ${accessToken}` } });
+        if (deployRes.ok) {
+           const deployData = await deployRes.json();
+           const webApp = deployData.deployments?.find((d: any) => d.entryPoints?.some((e: any) => e.entryPointType === 'WEB_APP'));
+           if (webApp) scriptUrl = webApp.entryPoints[0].webApp.url;
+        }
+      }
+
+      if (!scriptUrl) throw new Error('無法取得 Script URL');
+
+      const noCacheUrl = `${scriptUrl}${scriptUrl.includes('?') ? '&' : '?'}t=${new Date().getTime()}`;
+      
+      // Generate Dummy Data
+      // We assume the sheet has 'name' and 'value' columns as per createSheet
+      const dummyData = Array.from({ length: count }).map(() => ({
+        name: `Test Item ${Math.floor(Math.random() * 1000)}`,
+        value: Math.floor(Math.random() * 100),
+        note: `Added by Vibe Coding on ${new Date().toLocaleTimeString()}` 
+      }));
+
+      // Use 'no-cors' mode? No, we want response.
+      // Apps Script Web App POST handling with fetch can be tricky with CORS preflight.
+      // Defaulting to text/plain (by not setting Content-Type to application/json) usually skips preflight
+      // and lets Apps Script access the body string.
+      const res = await fetch(noCacheUrl, {
+        method: 'POST',
+        body: JSON.stringify(dummyData)
+      });
+
+      if (!res.ok) throw new Error(`Script 請求失敗 (${res.status})`);
+      
+      const result = await res.json();
+      if (result.error) throw new Error(`Script 回傳錯誤: ${result.error}`);
+
+      setTestData(JSON.stringify(result, null, 2));
+
+    } catch (err: any) {
+      console.error(err);
+       if (err.message === 'Failed to fetch' || err.message.includes('CORS') || err.message.includes('HTML') || err.message.includes('403') || err.message.includes('連線失敗')) {
+        setError(`需要授權 (POST)：Google 要求您必須手動允許此腳本執行。`);
+        setAuthUrl(scriptUrl);
+      } else {
+        setError(`新增失敗: ${err.message}`);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateTestData = async (file: DriveFile) => {
+    if (!accessToken) return;
+    setLoading(true);
+    setTestData('');
+    setError('');
+    
+    let scriptUrl = '';
+
+    try {
+      // 1. Resolve Script URL (Reuse logic)
+       if (file.description) {
+        try {
+          const meta = JSON.parse(file.description);
+          scriptUrl = meta.scriptUrl || '';
+        } catch (e) { console.error(e); }
+      }
+      if (!scriptUrl) throw new Error('無法取得 Script URL，請確認表格建立正確。');
+      
+      const noCacheUrl = `${scriptUrl}${scriptUrl.includes('?') ? '&' : '?'}t=${new Date().getTime()}`;
+
+      // 2. Fetch current data first to find an ID to update
+      const getRes = await fetch(noCacheUrl);
+      if (!getRes.ok) throw new Error('無法讀取現有資料以進行更新');
+      const getResult = await getRes.json();
+      
+      if (!getResult.data || !Array.isArray(getResult.data) || getResult.data.length === 0) {
+          throw new Error('表格目前是空的，請先新增資料再測試更新。');
+      }
+
+      // Pick the first item to update
+      const targetitem = getResult.data[0];
+      const targetId = targetitem.id;
+      
+      if (!targetId) throw new Error('資料中找不到 id 欄位，無法進行更新');
+
+      // 3. Perform Update
+      const updatePayload = {
+          id: targetId,
+          name: `${targetitem.name || 'Item'} (Updated ${new Date().toLocaleTimeString()})`,
+          value: Math.floor(Math.random() * 9999)
+      };
+
+      // Append method=PUT to URL
+      const updateUrl = `${noCacheUrl}&method=PUT`;
+      
+      const res = await fetch(updateUrl, {
+          method: 'POST',
+          body: JSON.stringify(updatePayload)
+      });
+
+      if (!res.ok) throw new Error(`Update 請求失敗 (${res.status})`);
+      const result = await res.json();
+      
+      if (result.error) throw new Error(`Script Update Error: ${result.error}`);
+      
+      setTestData(JSON.stringify({
+          action: 'Update Row',
+          targetId: targetId,
+          sentPayload: updatePayload,
+          response: result
+      }, null, 2));
+
+    } catch (err: any) {
+        console.error(err);
+        setError(`更新失敗: ${err.message}`);
+    } finally {
+        setLoading(false);
+    }
+  };
+
+  const deleteTestData = async (file: DriveFile) => {
+    if (!accessToken) return;
+    setLoading(true);
+    setTestData('');
+    setError('');
+    
+    let scriptUrl = '';
+
+    try {
+      if (file.description) {
+        try {
+          const meta = JSON.parse(file.description);
+          scriptUrl = meta.scriptUrl || '';
+        } catch (e) { console.error(e); }
+      }
+      if (!scriptUrl) throw new Error('無法取得 Script URL');
+      
+      const noCacheUrl = `${scriptUrl}${scriptUrl.includes('?') ? '&' : '?'}t=${new Date().getTime()}`;
+
+      // 1. Get List
+      const getRes = await fetch(noCacheUrl);
+      if (!getRes.ok) throw new Error('無法讀取資料');
+      const getResult = await getRes.json();
+      
+      if (!getResult.data || !Array.isArray(getResult.data) || getResult.data.length === 0) {
+          throw new Error('無資料可刪除');
+      }
+
+      // Find first enabled item
+      const targetItem = getResult.data.find((item: any) => item.is_enabled !== false && item.is_enabled !== 'FALSE');
+      
+      if (!targetItem) throw new Error('找不到有效 (is_enabled=true) 的資料可刪除，或資料皆已刪除。');
+      
+      const deleteUrl = `${noCacheUrl}&method=DELETE`;
+      const res = await fetch(deleteUrl, {
+          method: 'POST',
+          body: JSON.stringify({ id: targetItem.id })
+      });
+
+      if (!res.ok) throw new Error(`Delete 請求失敗 (${res.status})`);
+      const result = await res.json();
+      
+      if (result.error) throw new Error(`Script Delete Error: ${result.error}`);
+      
+      setTestData(JSON.stringify({
+          action: 'Soft Delete Row',
+          targetId: targetItem.id,
+          response: result
+      }, null, 2));
+
+    } catch (err: any) {
+        console.error(err);
+        setError(`刪除失敗: ${err.message}`);
+    } finally {
+        setLoading(false);
+    }
+  };
   
   const resetCreation = () => setCreationResult(null);
   const clearTestData = () => setTestData('');
@@ -207,6 +419,9 @@ export const useSheetManager = (accessToken: string | null) => {
     createSheet,
     fetchFiles,
     testConnection,
+    addTestData,
+    updateTestData,
+    deleteTestData,
     resetCreation,
     clearTestData,
     clearError,

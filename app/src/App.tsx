@@ -30,6 +30,9 @@ const App: React.FC = () => {
     createSheet, 
     fetchFiles, 
     testConnection,
+    addTestData,
+    updateTestData,
+    deleteTestData,
     resetCreation,
     clearTestData,
     clearError,
@@ -135,6 +138,9 @@ const App: React.FC = () => {
               onBack={() => handleSwitchView('menu')}
               onFetch={fetchFiles}
               onTestConnection={testConnection}
+              onAddData={addTestData}
+              onUpdateData={updateTestData}
+              onDeleteData={deleteTestData}
               testData={testData}
               authUrl={authUrl}
               onCloseTestResult={() => { clearTestData(); clearAuthUrl(); }}
