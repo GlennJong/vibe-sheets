@@ -1,5 +1,7 @@
 # Vibe Sheets (Monorepo)
 
+[Live Demo](https://www.glenn.tw/vibe-sheets)
+
 This repository contains the source code for the Vibe Sheets application and its core SDK.
 
 ## Project Structure
