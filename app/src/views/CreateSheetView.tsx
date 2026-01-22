@@ -11,7 +11,7 @@ export interface CreationResponse {
 interface CreateSheetViewProps {
   loading: boolean;
   creationResult: CreationResponse | null;
-  onCreate: (name: string) => void;
+  onCreate: (options: { sheetName: string }) => void;
   onBack: () => void;
   resetCreation: () => void;
 }
@@ -99,7 +99,7 @@ export const CreateSheetView: React.FC<CreateSheetViewProps> = ({
 
         <Flex gap="3" mt="4">
           <Button 
-            onClick={() => onCreate(sheetName)} 
+            onClick={() => onCreate({ sheetName })} 
             disabled={loading || !sheetName.trim()} 
             style={{ flex: 1, cursor: 'pointer' }}
           >

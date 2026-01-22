@@ -83,9 +83,23 @@ const VibeApp = ({ token }) => {
     creationResult 
   } = ReactHooks.useSheetManager(token);
 
+  const handleCreate = () => {
+    createSheet({
+        sheetName: "My New Sheet",
+        // Optional: Custom prefix for file search (defaults to 'vibesheet-')
+        prefix: "myapp-",
+        // Optional: Define custom columns (defaults to name/value)
+        columns: [
+            { name: "title", type: "string" },
+            { name: "status", type: "string" },
+            { name: "count", type: "number" }
+        ]
+    });
+  };
+
   return (
     <div>
-      <button onClick={() => createSheet("My New Sheet")}>
+      <button onClick={handleCreate}>
         {loading ? "Creating..." : "Create Vibe Sheet"}
       </button>
       

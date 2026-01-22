@@ -12,7 +12,20 @@ export const useSheetManager = (accessToken: string | null) => {
   const [testData, setTestData] = useState<string>('');
   const [authUrl, setAuthUrl] = useState<string>('');
 
-  const createSheet = async (sheetName: string, prefix: string = 'vibesheet-') => {
+  const createSheet = async (options: {
+    sheetName: string;
+    prefix?: string;
+    columns?: VibeSheetsApi.ColumnDefinition[];
+  }) => {
+    const { 
+      sheetName, 
+      prefix = 'vibesheet-', 
+      columns = [
+        { name: 'name', type: 'string' },
+        { name: 'value', type: 'number' },
+      ]
+    } = options;
+
     if (!accessToken) return;
     if (!sheetName.trim()) {
       setError('請輸入表格名稱');
@@ -29,10 +42,7 @@ export const useSheetManager = (accessToken: string | null) => {
       const { id: spreadsheetId, spreadsheetUrl } = await VibeSheetsApi.createUserSpreadsheet(
         accessToken,
         fullName,
-        [
-          { name: 'name', type: 'string' },
-          { name: 'value', type: 'number' },
-        ]
+        columns
       );
 
       // 2. Create Script Project
