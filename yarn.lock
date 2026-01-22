@@ -261,7 +261,7 @@
   integrity sha512-aGTxbpbg8/b5JfU1HXSrbH3wXZuLPJcNEcZQFMxLs3oSzgtVu6nFPkbbGGUvBcUjKV2YyB9Wxxabo+HEH9tcRQ==
 
 "@glennjong/vibe-sheets@file:/workspaces/vibe-coding-quick-starter/src":
-  version "0.1.1"
+  version "0.2.0"
   resolved "file:src"
 
 "@humanfs/core@^0.19.1":
