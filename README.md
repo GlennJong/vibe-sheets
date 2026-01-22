@@ -4,8 +4,21 @@ This repository contains the source code for the Vibe Sheets application and its
 
 ## Project Structure
 
-- **`app/`**: The frontend application (React + Vite).
+- **`app/`**: The frontend application (React + Vite). A fully functional demo that allows you to:
+  - Login with Google.
+  - Create new "Vibe Sheets" (Spreadsheet + Apps Script API).
+  - Manage existing sheets.
+  - Test APIs visually (Read, Create, Update, Soft Delete).
 - **`src/`**: The core package (`@glennjong/vibe-sheets`), containing all business logic and Google API interactions.
+
+## Key Capabilities
+
+The generated backend (Apps Script) works as a REST API:
+- **CRUD Ready**: Out-of-the-box support for Create, Read, Update, and Delete.
+- **Smart Fields**: Auto-generated `id`, `created_at`, `updated_at`.
+- **Soft Deletion**: Records are marked as `is_enabled: false` instead of being physically removed.
+- **Dynamic UI**: Boolean fields are automatically rendered as Checkboxes in Google Sheets.
+- **API Testing**: The demo app includes a built-in API tester with field filtering.
 
 ## Getting Started
 

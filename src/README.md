@@ -5,9 +5,38 @@ The official SDK for building applications with Vibe Sheets logic. This SDK prov
 ## Features
 
 - **Serverless Architecture**: Directly interacts with Google APIs (Sheets, Drive, Apps Script) from the browser.
+- **Full CRUD Support**: Built-in support for Create, Read, Update, and Delete operations on Google Sheets.
+- **Soft Delete**: Implements soft delete pattern using `is_enabled` column.
+- **Advanced Filtering**: Support for field projection (e.g., `?fields=name,value`) in API requests.
 - **React Hooks**: Built-in hooks for easy state management (`useSheetManager`, `useGoogleAuth`).
 - **Core API**: Raw API functions available for non-React environments.
 - **Type-Safe**: Written in TypeScript with full type definitions.
+
+## Apps Script Backend
+
+The SDK automatically deploys a Google Apps Script project that acts as a RESTful API for your Google Sheets.
+
+### Supported Operations
+
+- **GET (Read)**: Fetches data from the sheet.
+  - Supports field filtering: `?fields=field1,field2`
+  - Automatically filters out soft-deleted items (`is_enabled=false`).
+  - Excludes system columns (`is_enabled`) from default response.
+
+- **POST (Create)**: Appends new rows to the sheet.
+  - Supports batch insertion (array of objects) or single item.
+  - Automatically sets `created_at`, `updated_at`, and `id` (UUID).
+  - Handles Checkbox data validation dynamically.
+
+- **POST (Update)**: Updates existing rows.
+  - Method: `?method=PUT`
+  - Body: `{ id: "target_id", ...fields_to_update }`
+  - Automatically updates `updated_at`.
+
+- **POST (Delete)**: Soft deletes rows.
+  - Method: `?method=DELETE`
+  - Body: `{ id: "target_id" }`
+  - Sets `is_enabled` to `false`.
 
 ## Installation
 
