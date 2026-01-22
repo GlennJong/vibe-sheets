@@ -1,5 +1,7 @@
 # Vibe Sheets SDK
 
+[Live Demo](https://www.glenn.tw/vibe-sheets) | [GitHub Repository](https://github.com/GlennJong/vibe-sheets)
+
 The official SDK for building applications with Vibe Sheets logic. This SDK provides a decentralized, serverless way to manage Google Sheets and Apps Script deployments directly from the client-side.
 
 ## Features

@@ -1,7 +1,11 @@
 {
   "name": "@glennjong/vibe-sheets",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Core SDK for Vibe Sheets",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/GlennJong/vibe-sheets.git"
+  },
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
