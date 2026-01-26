@@ -5,7 +5,17 @@ export const APPS_SCRIPT_CODE = {
   doGet: `
     function doGet(e) {
       try {
-        var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
+        var sheetName = e.parameter.sheet;
+        var sheet;
+        if (sheetName) {
+          sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
+          if (!sheet) {
+             return createJsonResponse({ error: 'Sheet "' + sheetName + '" not found' });
+          }
+        } else {
+          sheet = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
+        }
+
         var rows = sheet.getDataRange().getValues();
         
         if (rows.length === 0) {
@@ -84,7 +94,17 @@ export const APPS_SCRIPT_CODE = {
   doPost: `
     function doPost(e) {
       try {
-        var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
+        var sheetName = e.parameter.sheet;
+        var sheet;
+        if (sheetName) {
+          sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
+          if (!sheet) {
+             return createJsonResponse({ error: 'Sheet "' + sheetName + '" not found' });
+          }
+        } else {
+          sheet = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
+        }
+
         var action = e.parameter.method || e.parameter.action;
 
         // --- UPDATE Logic ---

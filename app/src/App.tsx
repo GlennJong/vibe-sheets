@@ -36,7 +36,8 @@ const App: React.FC = () => {
     resetCreation,
     clearTestData,
     clearError,
-    clearAuthUrl
+    clearAuthUrl,
+    creationStatus
   } = useSheetManager(accessToken);
 
   const [view, setView] = useState<View>('login');
@@ -124,6 +125,7 @@ const App: React.FC = () => {
           {view === 'create' && (
             <CreateSheetView 
               loading={sheetLoading}
+              creationStatus={creationStatus}
               creationResult={creationResult as any}
               onCreate={createSheet}
               onBack={() => handleSwitchView('menu')}

@@ -2,8 +2,11 @@ import { useState } from 'react';
 import type { CreationResponse, DriveFile } from '../types';
 import * as VibeSheetsApi from '../core/googleApi';
 
+export type CreationStatus = 'idle' | 'creating_sheet' | 'creating_script' | 'updating_script' | 'deploying' | 'finishing' | 'completed';
+
 export const useSheetManager = (accessToken: string | null) => {
   const [loading, setLoading] = useState<boolean>(false);
+  const [creationStatus, setCreationStatus] = useState<CreationStatus>('idle');
   const [error, setError] = useState<string>('');
   
   const [creationResult, setCreationResult] = useState<CreationResponse | null>(null);
@@ -14,11 +17,13 @@ export const useSheetManager = (accessToken: string | null) => {
 
   const createSheet = async (options: {
     sheetName: string;
+    tabName?: string;
     prefix?: string;
     columns?: VibeSheetsApi.ColumnDefinition[];
   }) => {
     const { 
       sheetName, 
+      tabName = "default",
       prefix = 'vibesheet-', 
       columns = [
         { name: 'name', type: 'string' },
@@ -32,6 +37,7 @@ export const useSheetManager = (accessToken: string | null) => {
       return;
     }
     setLoading(true);
+    setCreationStatus('creating_sheet');
     setError('');
     setCreationResult(null);
     
@@ -42,19 +48,24 @@ export const useSheetManager = (accessToken: string | null) => {
       const { id: spreadsheetId, spreadsheetUrl } = await VibeSheetsApi.createUserSpreadsheet(
         accessToken,
         fullName,
-        columns
+        columns,
+        tabName
       );
 
       // 2. Create Script Project
+      setCreationStatus('creating_script');
       const scriptId = await VibeSheetsApi.createScriptProject(accessToken, spreadsheetId, fullName);
 
       // 3. Update Script Content
+      setCreationStatus('updating_script');
       await VibeSheetsApi.updateScriptContent(accessToken, scriptId);
 
       // 4. Deploy as Web App
+      setCreationStatus('deploying');
       const deploymentUrl = await VibeSheetsApi.deployAsWebApp(accessToken, scriptId);
 
       // 5. Update File Description
+      setCreationStatus('finishing');
       const metaData = JSON.stringify({
         scriptId: scriptId,
         scriptUrl: deploymentUrl
@@ -70,10 +81,13 @@ export const useSheetManager = (accessToken: string | null) => {
         scriptUrl: deploymentUrl,
         tip: manualAuthTip
       });
+      
+      setCreationStatus('completed');
 
     } catch (err: any) {
       console.error(err);
       setError(err.message || '建立資源時發生未知錯誤');
+      setCreationStatus('idle');
     } finally {
       setLoading(false);
     }
@@ -440,6 +454,7 @@ export const useSheetManager = (accessToken: string | null) => {
     resetCreation,
     clearTestData,
     clearError,
-    clearAuthUrl
+    clearAuthUrl,
+    creationStatus
   };
 };

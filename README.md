@@ -17,6 +17,7 @@ This repository contains the source code for the Vibe Sheets application and its
 
 The generated backend (Apps Script) works as a REST API:
 - **CRUD Ready**: Out-of-the-box support for Create, Read, Update, and Delete.
+- **Multi-Sheet Support**: Target specific sheets/tabs via API parameters.
 - **Smart Fields**: Auto-generated `id`, `created_at`, `updated_at`.
 - **Soft Deletion**: Records are marked as `is_enabled: false` instead of being physically removed.
 - **Dynamic UI**: Boolean fields are automatically rendered as Checkboxes in Google Sheets.

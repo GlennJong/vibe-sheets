@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Card, Flex, Button, Heading, Text, TextField, Callout } from '@radix-ui/themes';
-import { ExternalLinkIcon, CheckCircledIcon, ExclamationTriangleIcon } from '@radix-ui/react-icons';
+import { ExternalLinkIcon, CheckCircledIcon, ExclamationTriangleIcon, UpdateIcon, CircleIcon } from '@radix-ui/react-icons';
 import { openAuthPopup } from '../utils';
 
 export interface CreationResponse {
@@ -8,22 +8,47 @@ export interface CreationResponse {
   scriptUrl: string;
 }
 
+export type CreationStatus = 'idle' | 'creating_sheet' | 'creating_script' | 'updating_script' | 'deploying' | 'finishing' | 'completed';
+
 interface CreateSheetViewProps {
   loading: boolean;
+  creationStatus: CreationStatus;
   creationResult: CreationResponse | null;
-  onCreate: (options: { sheetName: string }) => void;
+  onCreate: (options: { sheetName: string, tabName?: string }) => void;
   onBack: () => void;
   resetCreation: () => void;
 }
 
+const StepItem = ({ label, status }: { label: string, status: 'pending' | 'in-progress' | 'done' }) => {
+    let icon = <CircleIcon />;
+    let color: "gray" | "blue" | "green" = "gray";
+  
+    if (status === 'in-progress') {
+      icon = <UpdateIcon style={{ animation: 'spin 1s linear infinite' }} />;
+      color = "blue";
+    } else if (status === 'done') {
+      icon = <CheckCircledIcon />;
+      color = "green";
+    }
+  
+    return (
+      <Flex gap="2" align="center">
+        <Text color={color}>{icon}</Text>
+        <Text color={color} size="2">{label}</Text>
+      </Flex>
+    );
+  }
+
 export const CreateSheetView: React.FC<CreateSheetViewProps> = ({ 
-  loading, 
+  loading,
+  creationStatus, 
   creationResult, 
   onCreate, 
   onBack,
   resetCreation 
 }) => {
   const [sheetName, setSheetName] = useState('');
+  const [tabName] = useState('');
 
   if (creationResult) {
     return (
@@ -78,6 +103,13 @@ export const CreateSheetView: React.FC<CreateSheetViewProps> = ({
     );
   }
 
+  const isSheetDone = !['idle', 'creating_sheet'].includes(creationStatus);
+  const sheetStatus = creationStatus === 'creating_sheet' ? 'in-progress' : (isSheetDone ? 'done' : 'pending');
+
+  const scriptStatus = ['creating_script', 'updating_script', 'deploying', 'finishing'].includes(creationStatus) 
+     ? 'in-progress' 
+     : (creationStatus === 'completed' ? 'done' : 'pending');
+
   return (
     <Card size="3" style={{ width: '100%' }}>
       <Flex direction="column" gap="4" py="4">
@@ -97,9 +129,16 @@ export const CreateSheetView: React.FC<CreateSheetViewProps> = ({
             </TextField.Root>
         </Flex>
 
+        {loading && (
+            <Flex direction="column" gap="2" my="2" p="3" style={{ background: 'var(--gray-3)', borderRadius: 'var(--radius-2)' }}>
+                <StepItem label={sheetStatus === 'done' ? "已新增 Google Sheet" : "正在新增 Google Sheet..."} status={sheetStatus} />
+                <StepItem label={scriptStatus === 'done' ? "已新增 Apps Script" : "正在新增 Apps Script..."} status={scriptStatus} />
+            </Flex>
+        )}
+
         <Flex gap="3" mt="4">
           <Button 
-            onClick={() => onCreate({ sheetName })} 
+            onClick={() => onCreate({ sheetName, tabName: tabName.trim() || undefined })} 
             disabled={loading || !sheetName.trim()} 
             style={{ flex: 1, cursor: 'pointer' }}
           >
@@ -107,6 +146,7 @@ export const CreateSheetView: React.FC<CreateSheetViewProps> = ({
           </Button>
           <Button 
             onClick={onBack} 
+            disabled={loading}
             variant="soft" 
             color="gray"
             style={{ flex: 1, cursor: 'pointer' }}

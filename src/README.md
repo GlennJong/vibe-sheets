@@ -20,6 +20,10 @@ The SDK automatically deploys a Google Apps Script project that acts as a RESTfu
 
 ### Supported Operations
 
+All operations support the `sheet` query parameter (e.g., `?sheet=PendingOrders`).
+- If specified, the operation targets that specific sheet/tab by name.
+- If omitted, defaults to the **first sheet** in the spreadsheet.
+
 - **GET (Read)**: Fetches data from the sheet.
   - Supports field filtering: `?fields=field1,field2`
   - Automatically filters out soft-deleted items (`is_enabled=false`).
@@ -86,6 +90,8 @@ const VibeApp = ({ token }) => {
   const handleCreate = () => {
     createSheet({
         sheetName: "My New Sheet",
+        // Optional: Custom tab Name (defaults to 'default')
+        tabName: "OrderData",
         // Optional: Custom prefix for file search (defaults to 'vibesheet-')
         prefix: "myapp-",
         // Optional: Define custom columns (defaults to name/value)

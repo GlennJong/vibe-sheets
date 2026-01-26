@@ -19,7 +19,8 @@ export interface ColumnDefinition {
 export async function createUserSpreadsheet(
   token: string, 
   title: string, 
-  userColumns: ColumnDefinition[] = []
+  userColumns: ColumnDefinition[] = [],
+  sheetName: string = "default"
 ) {
   
   // 1. Column Merging Logic
@@ -95,7 +96,7 @@ export async function createUserSpreadsheet(
   // 設定初始表格內容
   const sheetsConfig = [
     {
-      properties: { title: "Sheet1", sheetId: 0 }, // Explicitly set sheetId to 0 for referenced updates
+      properties: { title: sheetName, sheetId: 0 }, // Explicitly set sheetId to 0 for referenced updates
       data: [
         {
           startRow: 0,
