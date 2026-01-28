@@ -2,6 +2,9 @@
 
 export const APPS_SCRIPT_CODE = {
   // doGet: 處理 GET 請求，負責讀取資料
+  // 參數:
+  // - sheet: (Optional) 指定要讀取的試算表名稱，若未指定則預設為第一個工作表
+  // - fields: (Optional) 指定要回傳的欄位，逗號分隔 (e.g. ?fields=name,email)
   doGet: `
     function doGet(e) {
       try {
@@ -69,6 +72,9 @@ export const APPS_SCRIPT_CODE = {
   `,
 
   // doPost: 處理 POST 請求，負責寫入資料
+  // 參數:
+  // - sheet: (Optional) 指定要操作的試算表名稱，若未指定則預設為第一個工作表
+  // - method: (Optional) 指定操作方法 (PUT/UPDATE, DELETE)，若未指定則預設為 CREATE
   doPost: `
     function doPost(e) {
       try {

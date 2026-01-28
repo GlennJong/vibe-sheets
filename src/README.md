@@ -24,25 +24,41 @@ All operations support the `sheet` query parameter (e.g., `?sheet=PendingOrders`
 - If specified, the operation targets that specific sheet/tab by name.
 - If omitted, defaults to the **first sheet** in the spreadsheet.
 
-- **GET (Read)**: Fetches data from the sheet.
-  - Supports field filtering: `?fields=field1,field2`
-  - Automatically filters out soft-deleted items (`is_enabled=false`).
-  - Excludes system columns (`is_enabled`) from default response.
+- **GET (Read)**: Retrieves rows from the sheet.
+  - **Query Params**:
+    - `sheet` (Optional): The name of the tab to read from(e.g., `?sheet=mySheet`). Defaults to the first tab.
+    - `fields` (Optional): Comma-separated list of columns to retrieve (e.g., `?fields=name,email`).
+  - **Behavior**:
+    - Automatically filters out rows where `is_enabled` is `false` (soft delete).
+    - **Always returns the `id` column**, even if not explicitly requested in `fields`.
+    - Excludes `is_enabled` from the response unless explicitly asked for.
 
 - **POST (Create)**: Appends new rows to the sheet.
-  - Supports batch insertion (array of objects) or single item.
-  - Automatically sets `created_at`, `updated_at`, and `id` (UUID).
-  - Handles Checkbox data validation dynamically.
+  - **Query Params**:
+    - `sheet` (Optional): The name of the tab to read from(e.g., `?sheet=mySheet`). Defaults to the first tab.
+  - **Body**: Single JSON object or an Array of objects.
+  - **Behavior**:
+    - This is the default action if no `method` parameter is provided.
+    - Auto-generates `id` (UUID) as a **string**, `created_at`, and `updated_at` if missing.
+    - Automatically adds checkbox validation for boolean fields.
 
-- **POST (Update)**: Updates existing rows.
-  - Method: `?method=PUT`
-  - Body: `{ id: "target_id", ...fields_to_update }`
-  - Automatically updates `updated_at`.
+- **POST (Update)**: Updates specific columns of an existing row.
+  - **Query Params**:
+    - `method=PUT` (Required): Specifies the update operation.
+    - `sheet` (Optional): The name of the tab to read from(e.g., `?sheet=mySheet`). Defaults to the first tab.
+  - **Body**: JSON object `{ id: "target_id", ...fields_to_update }`.
+  - **Behavior**:
+    - Matches row by `id` (string comparison).
+    - Updates only the provided fields and refreshes `updated_at`.
 
-- **POST (Delete)**: Soft deletes rows.
-  - Method: `?method=DELETE`
-  - Body: `{ id: "target_id" }`
-  - Sets `is_enabled` to `false`.
+- **POST (Delete)**: Performs a soft delete.
+  - **Query Params**:
+    - `method=DELETE` (Required): Specifies the delete operation.
+    - `sheet` (Optional): The name of the tab to read from(e.g., `?sheet=mySheet`). Defaults to the first tab.
+  - **Body**: JSON object `{ id: "target_id" }`.
+  - **Behavior**:
+    - Sets `is_enabled` to `false`.
+    - Does not physically delete the row.
 
 ## Installation
 
