@@ -65,7 +65,7 @@ export const CreateSheetView: React.FC<CreateSheetViewProps> = ({
             <Callout.Text>
               <Text weight="bold" as="div" mb="2">重要：最後一步</Text>
               <Text size="2">
-                請授權您自己的 Apps Script 來控制您的 Google Sheets。此工具完全運行在您的帳號下，您擁有絕對的主導權。
+                請授權您自己的 Apps Script (APIs) 來控制您的 Google Sheets。此工具完全運行在您的帳號下，您擁有絕對的主導權。
               </Text>
               <Button 
                 onClick={() => creationResult.scriptUrl && openAuthPopup(creationResult.scriptUrl)}
@@ -131,8 +131,8 @@ export const CreateSheetView: React.FC<CreateSheetViewProps> = ({
 
         {loading && (
             <Flex direction="column" gap="2" my="2" p="3" style={{ background: 'var(--gray-3)', borderRadius: 'var(--radius-2)' }}>
-                <StepItem label={sheetStatus === 'done' ? "已新增 Google Sheet" : "正在新增 Google Sheet..."} status={sheetStatus} />
-                <StepItem label={scriptStatus === 'done' ? "已新增 Apps Script" : "正在新增 Apps Script..."} status={scriptStatus} />
+                <StepItem label={sheetStatus === 'done' ? "已新增 Google Sheet" : `正在您的 Google Sheet 新增試算表: ${sheetName}...`} status={sheetStatus} />
+                <StepItem label={scriptStatus === 'done' ? "已新增 Apps Script" : "正在您的 Apps Script 新增 APIs..."} status={scriptStatus} />
             </Flex>
         )}
 

@@ -32,29 +32,6 @@ export const APPS_SCRIPT_CODE = {
            allowedFields = fieldsParam.split(/[,\s+]+/).filter(function(f) { return f && f.trim().length > 0; });
         }
 
-        var data = rows.slice(1).map(function(row) {
-          var obj = {};
-          headers.forEach(function(header, i) {
-            // 如果有指定 fields，只回傳指定的欄位；否則回傳全部
-            if (allowedFields) {
-                if (allowedFields.indexOf(header) !== -1) {
-                    obj[header] = row[i];
-                }
-            } else {
-                obj[header] = row[i];
-            }
-          });
-          return obj;
-        });
-
-        // Filter out soft-deleted items (but only check if is_enabled is actually in the data or headers)
-        // 注意：如果 fields 參數排除了 is_enabled，我們仍然應該要根據原始資料過濾掉已刪除的，
-        // 但回傳的物件中可能不包含 is_enabled。
-        // 所以過濾邏輯應該依賴原始 row data，或者我們在上面 map 時先保留所有資料，最後再做 field selection (比較耗記憶體但邏輯簡單)。
-        // 改良：在 map 之前先過濾 row，這樣比較乾淨。
-        
-        // 重新實作：先過濾 rows，再 map 欄位
-        
         // 1. 先處理 Soft Delete 過濾
         var isEnabledIndex = headers.indexOf('is_enabled');
         var validRows = rows.slice(1);
@@ -73,7 +50,8 @@ export const APPS_SCRIPT_CODE = {
             if (header === 'is_enabled') return; // Always exclude is_enabled from output
 
             if (allowedFields) {
-                if (allowedFields.indexOf(header) !== -1) {
+                // 修改：即使 filter 中沒有指定 id，也強制回傳 id 供前端辨識
+                if (header === 'id' || allowedFields.indexOf(header) !== -1) {
                     obj[header] = row[i];
                 }
             } else {
@@ -132,8 +110,10 @@ export const APPS_SCRIPT_CODE = {
            // Find Row by ID
            var allIds = sheet.getRange(2, idIndex + 1, lastRow - 1, 1).getValues().map(function(r) { return r[0]; });
            var rowIndex = -1;
+           var targetId = String(updateData.id);
+           
            for (var i = 0; i < allIds.length; i++) {
-               if (String(allIds[i]) === String(updateData.id)) {
+               if (String(allIds[i]) === targetId) {
                    rowIndex = i + 2; 
                    break;
                }
@@ -196,9 +176,12 @@ export const APPS_SCRIPT_CODE = {
            
            var allIds = sheet.getRange(2, idIndex + 1, lastRow - 1, 1).getValues().map(function(r) { return r[0]; });
            
+           var targetId = String(deleteData.id);
            var rowIndex = -1;
+           
            for (var i = 0; i < allIds.length; i++) {
-               if (String(allIds[i]) === String(deleteData.id)) {
+               // 使用 String() 確保型別一致，避免 123 != "123" 的問題
+               if (String(allIds[i]) === targetId) {
                    rowIndex = i + 2; 
                    break;
                }
@@ -263,9 +246,14 @@ export const APPS_SCRIPT_CODE = {
                 var value = rowObj[header];
                 
                 // 自動填入欄位處理
-                if (header === 'id' && !value) {
-                    // 簡單產生唯一 ID
-                    value = Utilities.getUuid();
+                if (header === 'id') {
+                    if (!value) {
+                       // 簡單產生唯一 ID
+                       value = Utilities.getUuid();
+                    } else {
+                       // 強制轉為字串
+                       value = String(value);
+                    }
                 } else if (header === 'created_at' && !value) {
                     value = timestamp.toISOString();
                 } else if (header === 'updated_at' && !value) {
