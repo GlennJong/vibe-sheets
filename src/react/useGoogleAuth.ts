@@ -24,7 +24,7 @@ export const useGoogleAuth = ({ clientId }: UseGoogleAuthOptions) => {
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
-  const [isAppsScriptEnabled, setIsAppsScriptEnabled] = useState<boolean>(true);
+  const [isAppsScriptEnabled, setIsAppsScriptEnabled] = useState<boolean | undefined>(undefined);
   const [isChecking, setIsChecking] = useState<boolean>(false);
 
   const checkAppsScriptStatus = useCallback(async (token: string) => {
