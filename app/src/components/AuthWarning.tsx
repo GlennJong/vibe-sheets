@@ -1,5 +1,5 @@
-import React from 'react';
-import { Callout, Button, Flex, Text } from '@radix-ui/themes';
+import React, { useState } from 'react';
+import { Callout, Button, Flex, Text, Spinner } from '@radix-ui/themes';
 import { ExclamationTriangleIcon, ExternalLinkIcon } from '@radix-ui/react-icons';
 
 interface AuthWarningProps {
@@ -9,6 +9,13 @@ interface AuthWarningProps {
 }
 
 export const AuthWarning: React.FC<AuthWarningProps> = ({ authUrl, onOpenAuth, title }) => {
+  const [isWaiting, setIsWaiting] = useState(false);
+
+  const handleClick = () => {
+    setIsWaiting(true);
+    onOpenAuth(authUrl);
+  };
+
   return (
     <Callout.Root color="amber" variant="surface">
       <Callout.Icon>
@@ -24,11 +31,12 @@ export const AuthWarning: React.FC<AuthWarningProps> = ({ authUrl, onOpenAuth, t
           <Button 
             variant="solid" 
             color="amber" 
-            onClick={() => onOpenAuth(authUrl)}
-            style={{ cursor: 'pointer', marginTop: '10px' }}
+            onClick={handleClick}
+            disabled={isWaiting}
+            style={{ cursor: isWaiting ? 'default' : 'pointer', marginTop: '10px' }}
           >
-            <ExternalLinkIcon />
-            點此開啟授權視窗
+            {isWaiting ? <Spinner loading /> : <ExternalLinkIcon />}
+            {isWaiting ? '等待授權中...' : '點此開啟授權視窗'}
           </Button>
 
           <Text size="1" color="gray">

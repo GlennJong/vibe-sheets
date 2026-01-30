@@ -132,5 +132,14 @@ export const useGoogleAuth = ({ clientId }: UseGoogleAuthOptions) => {
     }
   }, [accessToken, checkAppsScriptStatus]);
 
-  return { accessToken, login, loading, error, isAppsScriptEnabled, isChecking, recheckAuth };
+  return { 
+    accessToken, 
+    login, 
+    loading, 
+    error, 
+    isAppsScriptEnabled, 
+    setIsAppsScriptEnabled, // Expose setter for manual bypass
+    isChecking, 
+    recheckAuth 
+  };
 };

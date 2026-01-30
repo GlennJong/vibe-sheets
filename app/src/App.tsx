@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Callout } from '@radix-ui/themes';
-import { ExclamationTriangleIcon } from '@radix-ui/react-icons';
+import { Callout, Text, Button } from '@radix-ui/themes';
+import { ExclamationTriangleIcon, CheckCircledIcon } from '@radix-ui/react-icons';
 
 import { useGoogleAuth } from '../../src/react/useGoogleAuth';
 import { useSheetManager } from '../../src/react/useSheetManager';
@@ -17,9 +17,18 @@ import { RemoveView } from './views/RemoveView';
 type View = 'login' | 'menu' | 'create' | 'list' | 'remove';
 
 const App: React.FC = () => {
-  const { accessToken, login, loading: authLoading, error: authError, isAppsScriptEnabled, recheckAuth } = useGoogleAuth({
+  const { 
+    accessToken, 
+    login, 
+    loading: authLoading, 
+    error: authError, 
+    isAppsScriptEnabled, 
+    setIsAppsScriptEnabled,
+    recheckAuth 
+  } = useGoogleAuth({
     clientId: import.meta.env.VITE_GOOGLE_CLIENT_ID || '',
   });
+
   const { 
     loading: sheetLoading, 
     error: sheetError, 
@@ -83,74 +92,104 @@ const App: React.FC = () => {
     <Layout isLoggedIn={!!accessToken}>
       {/* 依據狀態顯示對應 View */}
 
-      {/* 檢查 Apps Script API 是否啟用 */}
-      {accessToken && !isAppsScriptEnabled && (
-        <div style={{ marginTop: '20px' }}>
-          <AuthWarning
-            title="請啟用 Google Apps Script API"
-            authUrl="https://script.google.com/home/usersettings"
-            onOpenAuth={(url) => {
-              window.open(url, '_blank');
-              // 點擊後開始輪詢檢查，每 5 秒一次
-              const intervalId = setInterval(() => {
-                recheckAuth();
-              }, 5000);
-
-              // 當使用者真的啟用了 (isAppsScriptEnabled 變為 true)，
-              // 這個 component 會 unmount，interval 也會隨之清除 (但為了保險起見，可以存在 ref 裡或用 useEffect 清理)
-              // 這裡簡單做個自動清除邏輯：
-              // 這邊其實不太好直接清除，比較好的做法是配合 useEffect
-              // 但因為這裡是在 callback 裡，我們改用一個簡單的 window 級別變數或利用這一段 JSX 的生命週期
-              // 為了簡化，我們讓 useEffect 來處理輪詢的停止
-              (window as any)._authCheckInterval = intervalId;
-            }}
-          />
-          <Callout.Root color="gray" size="1" style={{ marginTop: '10px' }}>
-            <Callout.Text>
-              為了能夠自動建立與管理試算表程式，請點擊上方按鈕前往設定頁面，將 "Google Apps Script API" 切換為開啟 (On)。
-              系統會自動偵測您的啟用狀態。
-            </Callout.Text>
-          </Callout.Root>
-        </div>
-      )}
-      
       {!accessToken ? (
         <LoginView onLogin={login} loading={authLoading} />
       ) : (
         <>
-          {view === 'menu' && (
-            <MenuView onChangeView={handleSwitchView} />
+          {/* 1. 檢查 Apps Script API 權限狀態 - Undefined (檢查中) */}
+          {isAppsScriptEnabled === undefined && (
+            <div style={{ padding: '40px', textAlign: 'center' }}>
+              <Text>正在確認您的 Google Apps Script 權限...</Text>
+            </div>
           )}
 
-          {view === 'create' && (
-            <CreateSheetView 
-              loading={sheetLoading}
-              creationStatus={creationStatus}
-              creationResult={creationResult as any}
-              onCreate={createSheet}
-              onBack={() => handleSwitchView('menu')}
-              resetCreation={resetCreation}
-            />
+          {/* 2. 檢查 Apps Script API 權限狀態 - False (未啟用) -> 顯示警告並阻擋操作 */}
+          {isAppsScriptEnabled === false && (
+            <div style={{ marginTop: '20px' }}>
+              <AuthWarning
+                title="請啟用 Google Apps Script API"
+                authUrl="https://script.google.com/home/usersettings"
+                onOpenAuth={(url) => {
+                  window.open(url, '_blank');
+                  
+                  // 確保先清除可能存在的舊 interval，避免重複輪詢
+                  if ((window as any)._authCheckInterval) {
+                    clearInterval((window as any)._authCheckInterval);
+                  }
+
+                  // 點擊後開始輪詢檢查，每 5 秒一次
+                  const intervalId = setInterval(() => {
+                    recheckAuth();
+                  }, 5000);
+
+                  // 當使用者真的啟用了，這個 component 會 unmount，interval 也會隨之清除
+                  (window as any)._authCheckInterval = intervalId;
+                }}
+              />
+              <Callout.Root color="gray" size="1" style={{ marginTop: '10px' }}>
+                <Callout.Text>
+                  為了能夠自動建立與管理試算表程式，請點擊上方按鈕前往設定頁面，找到 "Google Apps Script API" 設定，將選項由「關閉」切換為「開啟」。
+                  系統會自動偵測您的啟用狀態。
+                </Callout.Text>
+              </Callout.Root>
+
+              <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'center' }}>
+                <Button 
+                  variant="outline" 
+                  color="gray"
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => {
+                     // 若使用者確認已開啟，讓他們跳過檢查直接進入
+                     // 為了安全起見，我們還是會在背景做一次檢查，但不阻擋介面
+                     setIsAppsScriptEnabled(true);
+                     recheckAuth();
+                  }}
+                >
+                  <CheckCircledIcon />
+                  我已經開啟 Apps Script 權限
+                </Button>
+              </div>
+            </div>
           )}
 
-          {view === 'list' && (
-            <SheetListView 
-              files={files}
-              loading={sheetLoading}
-              onBack={() => handleSwitchView('menu')}
-              onFetch={fetchFiles}
-              onTestConnection={testConnection}
-              onAddData={addTestData}
-              onUpdateData={updateTestData}
-              onDeleteData={deleteTestData}
-              testData={testData}
-              authUrl={authUrl}
-              onCloseTestResult={() => { clearTestData(); clearAuthUrl(); }}
-            />
-          )}
+          {/* 3. 檢查 Apps Script API 權限狀態 - True (已啟用) -> 正常顯示功能 */}
+          {isAppsScriptEnabled === true && (
+            <>
+              {view === 'menu' && (
+                <MenuView onChangeView={handleSwitchView} />
+              )}
 
-          {view === 'remove' && (
-            <RemoveView onBack={() => handleSwitchView('menu')} />
+              {view === 'create' && (
+                <CreateSheetView 
+                  loading={sheetLoading}
+                  creationStatus={creationStatus}
+                  creationResult={creationResult as any}
+                  onCreate={createSheet}
+                  onBack={() => handleSwitchView('menu')}
+                  resetCreation={resetCreation}
+                />
+              )}
+
+              {view === 'list' && (
+                <SheetListView 
+                  files={files}
+                  loading={sheetLoading}
+                  onBack={() => handleSwitchView('menu')}
+                  onFetch={fetchFiles}
+                  onTestConnection={testConnection}
+                  onAddData={addTestData}
+                  onUpdateData={updateTestData}
+                  onDeleteData={deleteTestData}
+                  testData={testData}
+                  authUrl={authUrl}
+                  onCloseTestResult={() => { clearTestData(); clearAuthUrl(); }}
+                />
+              )}
+
+              {view === 'remove' && (
+                <RemoveView onBack={() => handleSwitchView('menu')} />
+              )}
+            </>
           )}
         </>
       )}
