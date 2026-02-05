@@ -14,6 +14,116 @@ The official SDK for building applications with Vibe Sheets logic. This SDK prov
 - **Core API**: Raw API functions available for non-React environments.
 - **Type-Safe**: Written in TypeScript with full type definitions.
 
+## React Hooks Usage
+
+The SDK provides ready-to-use React hooks to simplify integration.
+
+### `useGoogleAuth`
+
+Handles Google OAuth 2.0 authentication flow, permission scopes, and token management.
+
+```typescript
+import { ReactHooks } from '@glennjong/vibe-sheets';
+
+const MyComponent = () => {
+  const { 
+    tokenClient,
+    accessToken,
+    loading,
+    error,
+    isAppsScriptEnabled,
+    isChecking,
+    initGoogleAuth,
+    handleLogin,
+    handleLogout,
+    checkAppsScriptStatus,
+    enableAppsScriptApi
+  } = ReactHooks.useGoogleAuth({
+    clientId: "YOUR_GOOGLE_CLIENT_ID"
+  });
+
+  useEffect(() => {
+    initGoogleAuth();
+  }, [initGoogleAuth]);
+
+  if (!accessToken) {
+    return <button onClick={handleLogin}>Login with Google</button>;
+  }
+
+  return (
+    <div>
+      <p>Logged in!</p>
+      {/* Check if user needs to enable Apps Script API manually */}
+      {isChecking ? "Checking API status..." : (
+         isAppsScriptEnabled === false && (
+            <button onClick={enableAppsScriptApi}>Enable Apps Script API</button>
+         )
+      )}
+    </div>
+  );
+};
+```
+
+### `useSheetManager`
+
+Manages the lifecycle of Vibe Sheets: creating new sheets, deploying the backend script, and fetching the list of existing sheets.
+
+```typescript
+import { ReactHooks } from '@glennjong/vibe-sheets';
+
+const Dashboard = ({ accessToken }) => {
+  const {
+    loading,
+    error,
+    files,          // List of Vibe Sheet files (DriveFile[])
+    creationStatus, // 'idle' | 'creating_sheet' | 'creating_script' | ...
+    creationResult, // Result after successful creation
+    fetchFiles,
+    createSheet,
+    testConnection
+  } = ReactHooks.useSheetManager(accessToken);
+
+  // 1. Fetch existing sheets on load
+  useEffect(() => {
+    if (accessToken) fetchFiles();
+  }, [accessToken]);
+
+  // 2. Create a new sheet
+  const handleCreate = async () => {
+    await createSheet({
+      sheetName: "My New Database",
+      columns: [
+        { name: 'product', type: 'string' },
+        { name: 'price', type: 'number' },
+        { name: 'in_stock', type: 'boolean' }
+      ]
+    });
+  };
+
+  return (
+    <div>
+      {loading && <p>Loading...</p>}
+      {error && <p style={{color: 'red'}}>{error}</p>}
+      
+      <button onClick={handleCreate}>Create New Sheet</button>
+
+      <ul>
+        {files.map(file => (
+          <li key={file.id}>
+            {file.name} 
+            {file.isError ? (
+               <span style={{color: 'red'}}> (Invalid Config)</span>
+            ) : (
+               <button onClick={() => testConnection(file)}>Test API</button>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+};
+```
+
 ## Apps Script Backend
 
 The SDK automatically deploys a Google Apps Script project that acts as a RESTful API for your Google Sheets.

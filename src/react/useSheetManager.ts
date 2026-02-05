@@ -115,7 +115,24 @@ export const useSheetManager = (accessToken: string | null) => {
       }
       
       const data = await res.json();
-      setFiles(data.files || []);
+      const parsedFiles = (data.files || []).map((f: any) => {
+        let meta: any = {};
+        let isError = true;
+
+        if (f.description) {
+          try {
+            meta = JSON.parse(f.description);
+            if (meta.scriptUrl) {
+              isError = false;
+            }
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          } catch (_) {
+            console.warn('Metadata parse failed:', f.id);
+          }
+        }
+        return { ...f, ...meta, isError };
+      });
+      setFiles(parsedFiles);
     } catch (err: any) {
       setError(err.message || '取得列表失敗');
     } finally {
@@ -130,10 +147,10 @@ export const useSheetManager = (accessToken: string | null) => {
     setError('');
     setAuthUrl('');
 
-    let scriptUrl = '';
+    let scriptUrl = file.scriptUrl || '';
 
     try {
-      if (file.description) {
+      if (!scriptUrl && file.description) {
         try {
           const meta = JSON.parse(file.description);
           if (meta.scriptUrl) {
@@ -226,10 +243,10 @@ export const useSheetManager = (accessToken: string | null) => {
     setError('');
     setAuthUrl('');
 
-    let scriptUrl = '';
+    let scriptUrl = file.scriptUrl || '';
 
     try {
-      if (file.description) {
+      if (!scriptUrl && file.description) {
         try {
           const meta = JSON.parse(file.description);
           if (meta.scriptUrl) {
@@ -306,11 +323,11 @@ export const useSheetManager = (accessToken: string | null) => {
     setTestData('');
     setError('');
     
-    let scriptUrl = '';
+    let scriptUrl = file.scriptUrl || '';
 
     try {
       // 1. Resolve Script URL (Reuse logic)
-       if (file.description) {
+       if (!scriptUrl && file.description) {
         try {
           const meta = JSON.parse(file.description);
           scriptUrl = meta.scriptUrl || '';
@@ -381,10 +398,10 @@ export const useSheetManager = (accessToken: string | null) => {
     setTestData('');
     setError('');
     
-    let scriptUrl = '';
+    let scriptUrl = file.scriptUrl || '';
 
     try {
-      if (file.description) {
+      if (!scriptUrl && file.description) {
         try {
           const meta = JSON.parse(file.description);
           scriptUrl = meta.scriptUrl || '';

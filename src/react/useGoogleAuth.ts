@@ -15,7 +15,7 @@ const SCOPES = [
   'https://www.googleapis.com/auth/drive.file'
 ].join(' ');
 
-interface UseGoogleAuthOptions {
+export interface UseGoogleAuthOptions {
   clientId: string;
 }
 
@@ -36,7 +36,8 @@ export const useGoogleAuth = ({ clientId }: UseGoogleAuthOptions) => {
     try {
       // 改用 Create 方法來測試，這是最準確的權限檢查
       // 嘗試建立一個空的暫存專案
-      const createResponse = await fetch('https://script.googleapis.com/v1/projects', {
+      // 加上 timestamp 避免瀏覽器快取 403 回應
+      const createResponse = await fetch(`https://script.googleapis.com/v1/projects?_t=${Date.now()}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

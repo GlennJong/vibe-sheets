@@ -12,4 +12,7 @@ export interface DriveFile {
   name: string;
   webViewLink: string;
   description?: string;
+  scriptUrl?: string; // Parsed from description
+  scriptId?: string;  // Parsed from description
+  isError: boolean;
 }
