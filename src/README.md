@@ -170,6 +170,96 @@ All operations support the `sheet` query parameter (e.g., `?sheet=PendingOrders`
     - Sets `is_enabled` to `false`.
     - Does not physically delete the row.
 
+- **GET (Authorize)**: `?action=authorize` returns the plain text `Authorization successful. You can close this window.` instead of data. Open this URL (`getAuthorizeUrl(scriptUrl)`, or `creationResult.authorizeUrl`) for the owner's first-time authorization.
+
+### Auto-filled System Columns (`onEdit`)
+
+When a user edits a row directly in Google Sheets, a built-in simple trigger fills the system columns:
+
+- New row (`id` is empty): generates `id`, sets `created_at`, and ticks `is_enabled`.
+- Any edit: refreshes `updated_at`.
+- Edits that only touch `id` / `created_at` / `updated_at`, the header row, or blank rows are ignored.
+- Does not fire for API writes, row deletion, or sorting (Google Sheets limitation).
+
+## Extending the Backend
+
+### Multiple Tabs
+
+Pass `tabs` instead of `tabName` / `columns` to create several tabs at once:
+
+```tsx
+createSheet({
+  sheetName: "My Shop",
+  prefix: "shop-",
+  tabs: [
+    {
+      name: "Products",
+      columns: [
+        { name: "name", type: "string" },
+        { name: "category", type: "string" },
+        { name: "stock", type: "number" },
+        // Written into the header cell as ={"left"; <arrayFormula>}
+        {
+          name: "left",
+          type: "number",
+          arrayFormula: 'IF({{.id}}="", "", {{.stock}} - SUMIF({{Log.product_id}}, {{.id}}, {{Log.qty}}))'
+        }
+      ],
+      demoRows: [{ name: "Sample", category: "Books", stock: 10 }]
+    },
+    {
+      name: "Log",
+      systemColumns: false, // no is_enabled / id / created_at / updated_at
+      columns: [
+        { name: "product_id", type: "string" },
+        { name: "qty", type: "number" },
+        { name: "product", type: "string", validation: { kind: "listFromRange", range: "{{Products.name}}", strict: false } }
+      ]
+    }
+  ]
+});
+```
+
+- **Placeholders**: `{{Tab.column}}` becomes `'Tab'!X2:X`, and `{{.column}}` refers to the current tab. They work in `arrayFormula` and `validation.range`.
+- **Column options**: `arrayFormula`, `validation` (`listFromRange` / `list` / `checkbox`), `note` (header comment), `readonly` (grey background plus warning-only protection). Formula columns are read-only automatically.
+- **Tab options**: `hidden`, `systemColumns` (default `true`), `demoRows`, `frozenRows` (default `1`).
+- **Escape hatch**: `setupRequests: (ctx) => object[]` appends raw Sheets API `batchUpdate` requests. `ctx` provides `sheetIds`, `columnIndex(tab, column)`, and `resolveRange(expression, currentTab)`.
+
+### Custom Script & Routes
+
+Pass `script` to add your own Apps Script file (`Custom.gs`) next to the built-in CRUD:
+
+```tsx
+createSheet({
+  sheetName: "My Shop",
+  tabs: [/* ... */],
+  script: {
+    version: "1.0.0", // stored as scriptVersion in the file metadata
+    code: `
+      var VIBE_ROUTES = {
+        GET:  { summary: function (e) { return { total: 42 }; } },
+        POST: { orders:  function (e) { return { ok: JSON.parse(e.postData.contents).length }; } }
+      };
+      function VIBE_ON_EDIT(e) { /* runs after the built-in onEdit */ }
+    `
+  }
+});
+```
+
+- Call routes with `?action=<name>` (or `?method=<name>`). The handler's return value is sent as JSON, and thrown errors become `{ error }`.
+- `PUT`, `UPDATE`, `DELETE`, and `authorize` are reserved for built-in actions. Unknown actions fall through to the CRUD behavior.
+- Don't define `onEdit` in your code; use `VIBE_ON_EDIT(e)` instead.
+- `oauthScopes` in `script` are merged with the default `spreadsheets.currentonly`.
+
+### Upgrading an Existing Script
+
+```tsx
+const { upgradeScript } = ReactHooks.useSheetManager(token);
+await upgradeScript(file, { code: newCode, version: "1.1.0" });
+```
+
+This updates the script content, creates a new version, and updates the existing web app deployment, so `scriptUrl` stays the same. `file.scriptVersion` (parsed from the file description) can be compared with your app's version to prompt for upgrades. Sheets created before this version can call `upgradeScript(file)` with no script to get the built-in `onEdit`.
+
 ## Installation
 
 ```bash

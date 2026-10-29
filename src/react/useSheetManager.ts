@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { CreationResponse, DriveFile } from '../types';
 import * as VibeSheetsApi from '../core/googleApi';
+import { getAuthorizeUrl } from '../core/appsScriptCode';
 
 export type CreationStatus = 'idle' | 'creating_sheet' | 'creating_script' | 'updating_script' | 'deploying' | 'finishing' | 'completed';
 
@@ -20,15 +21,21 @@ export const useSheetManager = (accessToken: string | null) => {
     tabName?: string;
     prefix?: string;
     columns?: VibeSheetsApi.ColumnDefinition[];
+    tabs?: VibeSheetsApi.TabDefinition[];
+    script?: VibeSheetsApi.CustomScript;
+    setupRequests?: (ctx: VibeSheetsApi.SetupContext) => object[];
   }) => {
-    const { 
-      sheetName, 
+    const {
+      sheetName,
       tabName = "default",
-      prefix = 'vibesheet-', 
+      prefix = 'vibesheet-',
       columns = [
         { name: 'name', type: 'string' },
         { name: 'value', type: 'number' },
-      ]
+      ],
+      tabs,
+      script,
+      setupRequests
     } = options;
 
     if (!accessToken) return;
@@ -44,13 +51,10 @@ export const useSheetManager = (accessToken: string | null) => {
     try {
       const fullName = `${prefix}${sheetName}`;
       
-      // 1. Create Spreadsheet
-      const { id: spreadsheetId, spreadsheetUrl } = await VibeSheetsApi.createUserSpreadsheet(
-        accessToken,
-        fullName,
-        columns,
-        tabName
-      );
+      // 1. Create Spreadsheet (tabs 為多分頁模式，否則沿用單分頁模式)
+      const { id: spreadsheetId, spreadsheetUrl } = tabs
+        ? await VibeSheetsApi.createSpreadsheetWithTabs(accessToken, fullName, tabs, setupRequests)
+        : await VibeSheetsApi.createUserSpreadsheet(accessToken, fullName, columns, tabName);
 
       // 2. Create Script Project
       setCreationStatus('creating_script');
@@ -58,7 +62,7 @@ export const useSheetManager = (accessToken: string | null) => {
 
       // 3. Update Script Content
       setCreationStatus('updating_script');
-      await VibeSheetsApi.updateScriptContent(accessToken, scriptId);
+      await VibeSheetsApi.updateScriptContent(accessToken, scriptId, script);
 
       // 4. Deploy as Web App
       setCreationStatus('deploying');
@@ -68,17 +72,19 @@ export const useSheetManager = (accessToken: string | null) => {
       setCreationStatus('finishing');
       const metaData = JSON.stringify({
         scriptId: scriptId,
-        scriptUrl: deploymentUrl
+        scriptUrl: deploymentUrl,
+        ...(script?.version ? { scriptVersion: script.version } : {})
       });
       await VibeSheetsApi.updateFileDescription(accessToken, spreadsheetId, metaData);
 
-      const manualAuthTip = '請用擁有者 Google 帳號在瀏覽器開啟 scriptUrl 並完成授權，否則匿名存取會被 Google 拒絕 (403)。';
+      const manualAuthTip = '請用擁有者 Google 帳號在瀏覽器開啟 authorizeUrl 並完成授權，否則匿名存取會被 Google 拒絕 (403)。';
 
       setCreationResult({
         success: true,
         spreadsheetUrl,
         spreadsheetId,
         scriptUrl: deploymentUrl,
+        authorizeUrl: getAuthorizeUrl(deploymentUrl),
         tip: manualAuthTip
       });
       
@@ -227,7 +233,7 @@ export const useSheetManager = (accessToken: string | null) => {
       console.error(err);
       if (err.message === 'Failed to fetch' || err.message.includes('CORS') || err.message.includes('HTML') || err.message.includes('403') || err.message.includes('連線失敗')) {
         setError(`需要授權：Google 要求您必須手動允許此腳本執行。`);
-        setAuthUrl(scriptUrl);
+        setAuthUrl(getAuthorizeUrl(scriptUrl));
       } else {
         setError(`測試失敗: ${err.message}`);
       }
@@ -308,7 +314,7 @@ export const useSheetManager = (accessToken: string | null) => {
       console.error(err);
        if (err.message === 'Failed to fetch' || err.message.includes('CORS') || err.message.includes('HTML') || err.message.includes('403') || err.message.includes('連線失敗')) {
         setError(`需要授權 (POST)：Google 要求您必須手動允許此腳本執行。`);
-        setAuthUrl(scriptUrl);
+        setAuthUrl(getAuthorizeUrl(scriptUrl));
       } else {
         setError(`新增失敗: ${err.message}`);
       }
@@ -450,6 +456,20 @@ export const useSheetManager = (accessToken: string | null) => {
     }
   };
   
+  const upgradeScript = async (file: DriveFile, script?: VibeSheetsApi.CustomScript) => {
+    if (!accessToken) return;
+    setLoading(true);
+    setError('');
+    try {
+      return await VibeSheetsApi.upgradeScript(accessToken, file, script);
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || '升級腳本失敗');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const resetCreation = () => setCreationResult(null);
   const clearTestData = () => setTestData('');
   const clearError = () => setError('');
@@ -468,6 +488,7 @@ export const useSheetManager = (accessToken: string | null) => {
     addTestData,
     updateTestData,
     deleteTestData,
+    upgradeScript,
     resetCreation,
     clearTestData,
     clearError,
