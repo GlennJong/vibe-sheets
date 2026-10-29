@@ -86,10 +86,18 @@ export const APPS_SCRIPT_CODE = {
   // - method: (Optional) 指定操作方法 (PUT/UPDATE, DELETE)，若未指定則預設為 CREATE
   doPost: `
     function doPost(e) {
+      var crudLock = null;
       try {
         // 開發者自訂路由優先 (見 dispatch)
         var routed = vibeDispatch('POST', e);
         if (routed) return routed;
+
+        // 內建 CRUD 寫入一律排隊執行，避免同時新增時計算出同一個起始列而互相覆蓋
+        crudLock = LockService.getScriptLock();
+        if (!crudLock.tryLock(10000)) {
+          crudLock = null;
+          return createJsonResponse({ error: 'LOCK_TIMEOUT' });
+        }
 
         var sheetName = e.parameter.sheet;
         var sheet;
@@ -258,8 +266,27 @@ export const APPS_SCRIPT_CODE = {
         var newRows = [];
         var timestamp = new Date();
         var createdIds = [];
+        var skippedIds = [];
+
+        // 冪等：前端帶入的 id 若已存在 (例如回應遺失後重送)，跳過不重複新增
+        var existingIds = {};
+        var idColumn = headers.indexOf('id');
+        if (idColumn !== -1 && sheet.getMaxRows() > 1) {
+            sheet.getRange(2, idColumn + 1, sheet.getMaxRows() - 1, 1).getValues().forEach(function(r) {
+                if (r[0] !== '' && r[0] !== null) existingIds[String(r[0])] = true;
+            });
+        }
         
         incomingRows.forEach(function(rowObj) {
+            if (idColumn !== -1 && rowObj.id) {
+                var incomingId = String(rowObj.id);
+                if (existingIds[incomingId]) {
+                    skippedIds.push(incomingId);
+                    return;
+                }
+                existingIds[incomingId] = true;
+            }
+
             var newRow = [];
             headers.forEach(function(header) {
                 var value = rowObj[header];
@@ -360,11 +387,14 @@ export const APPS_SCRIPT_CODE = {
         return createJsonResponse({ 
            status: 'success', 
            message: newRows.length + ' row(s) appended',
-           createdIds: createdIds
+           createdIds: createdIds,
+           skippedIds: skippedIds
         });
         
       } catch (err) {
         return createJsonResponse({ error: err.toString() });
+      } finally {
+        if (crudLock) crudLock.releaseLock();
       }
     }
   `,

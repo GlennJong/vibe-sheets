@@ -150,6 +150,8 @@ All operations support the `sheet` query parameter (e.g., `?sheet=PendingOrders`
   - **Behavior**:
     - This is the default action if no `method` parameter is provided.
     - Auto-generates `id` (UUID) as a **string**, `created_at`, and `updated_at` if missing.
+    - **Idempotent by `id`**: rows whose `id` already exists (or repeats within the same request) are skipped and returned in `skippedIds`. Generate the `id` on the client so retries after a lost response never create duplicates.
+    - Built-in writes (create / update / delete) are serialized with `LockService`, so concurrent requests can't overwrite each other's rows.
     - Automatically adds checkbox validation for boolean fields.
 
 - **POST (Update)**: Updates specific columns of an existing row.
