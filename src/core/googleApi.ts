@@ -75,6 +75,10 @@ const toColumnLetter = (index: number) => {
   return letter;
 };
 
+// 範圍運算必須包在 ARRAYFORMULA 內才會展開成整欄，否則 Sheets 會回傳 #VALUE!
+const toArrayFormula = (expression: string) =>
+  /^\s*ARRAYFORMULA\s*\(/i.test(expression) ? expression : `ARRAYFORMULA(${expression})`;
+
 const quoteSheetName = (name: string) => `'${name.replace(/'/g, "''")}'`;
 
 const toCellValue = (value: unknown) => {
@@ -120,7 +124,7 @@ export async function createSpreadsheetWithTabs(
     const headerRow = {
       values: tab.allColumns.map(col => ({
         userEnteredValue: col.arrayFormula
-          ? { formulaValue: `={"${col.name}"; ${resolveRange(col.arrayFormula, tab.name)}}` }
+          ? { formulaValue: `={"${col.name}"; ${toArrayFormula(resolveRange(col.arrayFormula, tab.name))}}` }
           : { stringValue: col.name },
         userEnteredFormat: { textFormat: { bold: true } },
         ...(col.note ? { note: col.note } : {})

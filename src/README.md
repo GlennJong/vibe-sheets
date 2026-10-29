@@ -223,7 +223,7 @@ createSheet({
 ```
 
 - **Placeholders**: `{{Tab.column}}` becomes `'Tab'!X2:X`, and `{{.column}}` refers to the current tab. They work in `arrayFormula` and `validation.range`.
-- **Column options**: `arrayFormula`, `validation` (`listFromRange` / `list` / `checkbox`), `note` (header comment), `readonly` (grey background plus warning-only protection). Formula columns are read-only automatically.
+- **Column options**: `arrayFormula` (wrapped in `ARRAYFORMULA(...)` automatically unless it already starts with it), `validation` (`listFromRange` / `list` / `checkbox`), `note` (header comment), `readonly` (grey background plus warning-only protection). Formula columns are read-only automatically.
 - **Tab options**: `hidden`, `systemColumns` (default `true`), `demoRows`, `frozenRows` (default `1`).
 - **Escape hatch**: `setupRequests: (ctx) => object[]` appends raw Sheets API `batchUpdate` requests. `ctx` provides `sheetIds`, `columnIndex(tab, column)`, and `resolveRange(expression, currentTab)`.
 
