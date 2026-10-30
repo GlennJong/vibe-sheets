@@ -302,3 +302,47 @@ test('updateScriptContent: custom code as a separate file, scopes merged', async
   ]);
   assert.deepEqual(calls[1].body.files.map(f => f.name), ['appsscript', 'Code']);
 });
+
+test('checkboxes only cover demo rows; tabs without demo rows get none', async () => {
+  const calls = captureFetch();
+  await sdk.createSpreadsheetWithTabs('TOKEN', 'test', [
+    { name: 'A', columns: [{ name: 'name', type: 'string' }, { name: 'flag', type: 'boolean' }], demoRows: [{ name: 'x' }, { name: 'y' }] },
+    { name: 'B', columns: [{ name: 'name', type: 'string' }, { name: 'flag', type: 'boolean' }] }
+  ]);
+  const checkboxes = calls[1].body.requests
+    .filter(r => r.setDataValidation?.rule.condition.type === 'BOOLEAN')
+    .map(r => [r.setDataValidation.range.sheetId, r.setDataValidation.range.startColumnIndex, r.setDataValidation.range.endRowIndex]);
+  assert.deepEqual(checkboxes, [[0, 0, 3], [0, 2, 3]]); // is_enabled + flag, rows 2–3 only
+});
+
+test('onEdit treats unchecked checkboxes as empty', () => {
+  const sheet = makeSheet('Promos', [['is_enabled', 'name', 'flag', 'id', 'created_at', 'updated_at'], [false, '', false, '', '', '']]);
+  makeContext([sheet], CUSTOM).onEdit(editAt(sheet, 2, 3));
+  assert.deepEqual(sheet.rows[1], [false, '', false, '', '', '']);
+});
+
+test('upgradeScript updates the versioned deployment matching scriptUrl, never HEAD', async () => {
+  const calls = [];
+  globalThis.fetch = async (url, opts = {}) => {
+    calls.push({ url, method: opts.method || 'GET', body: opts.body && JSON.parse(opts.body) });
+    if (url.endsWith('/versions')) return { ok: true, json: async () => ({ versionNumber: 7 }) };
+    if (url.endsWith('/deployments') && !opts.method) {
+      return { ok: true, json: async () => ({ deployments: [
+        { deploymentId: 'HEAD', deploymentConfig: {}, entryPoints: [{ entryPointType: 'WEB_APP', webApp: { url: 'https://dev' } }] },
+        { deploymentId: 'OTHER', deploymentConfig: { versionNumber: 2 }, entryPoints: [{ entryPointType: 'WEB_APP', webApp: { url: 'https://other' } }] },
+        { deploymentId: 'LIVE', deploymentConfig: { versionNumber: 1 }, entryPoints: [{ entryPointType: 'WEB_APP', webApp: { url: 'https://live' } }] }
+      ] }) };
+    }
+    if (opts.method === 'PUT' && url.includes('/deployments/')) {
+      return { ok: true, json: async () => ({ entryPoints: [{ entryPointType: 'WEB_APP', webApp: { url: 'https://live' } }] }) };
+    }
+    return { ok: true, json: async () => ({}) };
+  };
+  const res = await sdk.upgradeScript('TOKEN', { id: 'FILE', scriptId: 'S', description: JSON.stringify({ scriptUrl: 'https://live' }) }, { code: 'x', version: '2.0.0' });
+  const update = calls.find(c => c.method === 'PUT' && c.url.includes('/deployments/'));
+  assert.ok(update.url.endsWith('/deployments/LIVE'));
+  assert.deepEqual(update.body.deploymentConfig, { scriptId: 'S', versionNumber: 7, manifestFileName: 'appsscript', description: '2.0.0' });
+  assert.equal(res.scriptUrl, 'https://live');
+  const meta = JSON.parse(calls.find(c => c.method === 'PATCH').body.description);
+  assert.deepEqual(meta, { scriptUrl: 'https://live', scriptId: 'S', scriptVersion: '2.0.0' });
+});

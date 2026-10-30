@@ -183,7 +183,12 @@ export async function createSpreadsheetWithTabs(
       const validation: ColumnValidation | undefined =
         col.validation || (col.type === 'boolean' ? { kind: 'checkbox' } : undefined);
 
-      if (validation) {
+      // 勾選框只放在範例資料列：沒勾的勾選框值是 FALSE，會讓整欄空白列都被當成有資料
+      // 使用者之後新增的列，由內建 onEdit 補上勾選框
+      const demoCount = tab.demoRows?.length ?? 0;
+      const skipCheckbox = validation?.kind === 'checkbox' && demoCount === 0;
+
+      if (validation && !skipCheckbox) {
         let rule: object;
         if (validation.kind === 'checkbox') {
           rule = { condition: { type: 'BOOLEAN' }, strict: true, showCustomUi: true };
@@ -200,7 +205,12 @@ export async function createSpreadsheetWithTabs(
             showCustomUi: true
           };
         }
-        requests.push({ setDataValidation: { range, rule } });
+        requests.push({
+          setDataValidation: {
+            range: validation.kind === 'checkbox' ? { ...range, endRowIndex: 1 + demoCount } : range,
+            rule
+          }
+        });
       }
 
       if (col.readonly || col.arrayFormula) {
@@ -504,9 +514,17 @@ export async function upgradeScript(
     throw new Error(errorData.error?.message || 'Failed to list deployments');
   }
   const listData = await listRes.json();
-  const deployment = listData.deployments?.find((d: any) =>
-    d.entryPoints?.some((e: any) => e.entryPointType === 'WEB_APP')
-  );
+  // 找出目前使用中的 Web App 部署：優先比對檔案記錄的 scriptUrl
+  // HEAD 部署（沒有 versionNumber）是唯讀的，更新會回 400，一律排除
+  let currentUrl = '';
+  try {
+    currentUrl = file.description ? JSON.parse(file.description).scriptUrl || '' : '';
+  } catch {
+    currentUrl = '';
+  }
+  const webAppUrl = (d: any) => d.entryPoints?.find((e: any) => e.entryPointType === 'WEB_APP')?.webApp?.url;
+  const versioned = (listData.deployments || []).filter((d: any) => d.deploymentConfig?.versionNumber && webAppUrl(d));
+  const deployment = versioned.find((d: any) => webAppUrl(d) === currentUrl) || versioned[0];
   if (!deployment) throw new Error('No web app deployment found');
 
   const dRes = await fetch(`${APIS.SCRIPT_PROJECTS}/${scriptId}/deployments/${deployment.deploymentId}`, {

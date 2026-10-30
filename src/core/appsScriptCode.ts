@@ -475,7 +475,8 @@ export const APPS_SCRIPT_CODE = {
       var addedRow = false;
       rows.forEach(function(row) {
         var hasContent = row.some(function(value, i) {
-          return systemIndexes.indexOf(i) === -1 && value !== '' && value !== null;
+          // 沒勾的勾選框是 FALSE，不算內容
+          return systemIndexes.indexOf(i) === -1 && value !== '' && value !== null && value !== false;
         });
         if (!hasContent) return;
 
