@@ -14,7 +14,8 @@
   ],
   "scripts": {
     "build": "tsup index.ts --format cjs,esm --dts",
-    "dev": "tsup index.ts --format cjs,esm --dts --watch"
+    "dev": "tsup index.ts --format cjs,esm --dts --watch",
+    "test": "npm run build && node --test test/*.test.mjs"
   },
   "keywords": [],
   "author": "",

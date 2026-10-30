@@ -356,6 +356,12 @@ export const APPS_SCRIPT_CODE = {
             // data: newRows is already prepared
             var startRow = lastRowWithData + 1;
             
+            // 超出表格列數時先加列，否則寫入會失敗 (Sheets 預設只有 1000 列)
+            var lastRowNeeded = startRow + newRows.length - 1;
+            if (lastRowNeeded > sheet.getMaxRows()) {
+                sheet.insertRowsAfter(sheet.getMaxRows(), lastRowNeeded - sheet.getMaxRows());
+            }
+
             // setValues 需要二維陣列，且大小需完全符合 Range
             sheet.getRange(startRow, 1, newRows.length, newRows[0].length).setValues(newRows);
             
@@ -466,6 +472,7 @@ export const APPS_SCRIPT_CODE = {
       var systemIndexes = [idIndex, createdIndex, updatedIndex, enabledIndex];
 
       var touched = false;
+      var addedRow = false;
       rows.forEach(function(row) {
         var hasContent = row.some(function(value, i) {
           return systemIndexes.indexOf(i) === -1 && value !== '' && value !== null;
@@ -476,12 +483,19 @@ export const APPS_SCRIPT_CODE = {
           row[idIndex] = Utilities.getUuid();
           if (createdIndex !== -1 && !row[createdIndex]) row[createdIndex] = now;
           if (enabledIndex !== -1) row[enabledIndex] = true;
+          addedRow = true;
         }
         if (createdIndex !== -1 && !row[createdIndex]) row[createdIndex] = now;
         if (updatedIndex !== -1) row[updatedIndex] = now;
         touched = true;
       });
       if (!touched) return;
+
+      // 使用者在預留列數之外新增的列沒有勾選框，補上
+      if (addedRow && enabledIndex !== -1) {
+        var checkbox = SpreadsheetApp.newDataValidation().requireCheckbox().setAllowInvalid(false).build();
+        sheet.getRange(startRow, enabledIndex + 1, numRows, 1).setDataValidation(checkbox);
+      }
 
       // 只寫回系統欄位，避免覆蓋公式欄或使用者正在編輯的儲存格
       systemIndexes.forEach(function(index) {
