@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Card, Flex, Button, Heading, Text, ScrollArea, Box, Code, Dialog, TextField } from '@radix-ui/themes';
-import { ExternalLinkIcon, ArrowLeftIcon, LightningBoltIcon, Cross2Icon, MagnifyingGlassIcon } from '@radix-ui/react-icons';
+import { ExternalLinkIcon, ArrowLeftIcon, LightningBoltIcon, Cross2Icon, MagnifyingGlassIcon, UpdateIcon } from '@radix-ui/react-icons';
 import type { DriveFile } from '../types';
 import { AuthWarning } from '../components/AuthWarning';
 import { openAuthPopup, getScriptUrlFromDescription } from '../utils';
@@ -14,6 +14,7 @@ interface SheetListViewProps {
   onAddData: (file: DriveFile, count: number) => void;
   onUpdateData: (file: DriveFile, targetId?: string) => void;
   onDeleteData: (file: DriveFile, targetId?: string) => void;
+  onUpgradeScript: (file: DriveFile) => Promise<unknown>;
   testData: string;
   authUrl: string;
   onCloseTestResult: () => void;
@@ -145,6 +146,86 @@ const ApiActionDialog: React.FC<{
   );
 };
 
+const UpgradeScriptDialog: React.FC<{
+    file: DriveFile;
+    onUpgrade: (file: DriveFile) => Promise<unknown>;
+}> = ({ file, onUpgrade }) => {
+  const [open, setOpen] = useState(false);
+  const [upgrading, setUpgrading] = useState(false);
+  const [done, setDone] = useState(false);
+
+  // 帶自訂腳本 (scriptVersion) 的表格由 SDK 建立，從 demo 升級會覆蓋掉 Custom.gs
+  const disabledReason = !file.scriptId
+    ? '找不到 scriptId，無法升級'
+    : file.scriptVersion
+      ? `此表格使用自訂腳本 (${file.scriptVersion})，請用 SDK 的 upgradeScript 帶入原本的 script 升級`
+      : '';
+
+  const handleOpenChange = (next: boolean) => {
+    if (upgrading) return;
+    setOpen(next);
+    if (!next) setDone(false);
+  };
+
+  const handleUpgrade = async () => {
+    setUpgrading(true);
+    const result = await onUpgrade(file);
+    setUpgrading(false);
+    if (result) {
+      setDone(true);
+    } else {
+      setOpen(false); // 失敗訊息由頁面下方的錯誤區塊顯示
+    }
+  };
+
+  return (
+    <Dialog.Root open={open} onOpenChange={handleOpenChange}>
+      <Dialog.Trigger>
+        <Button
+            size="2"
+            variant="soft"
+            color="gray"
+            disabled={!!disabledReason}
+            title={disabledReason || '將 Apps Script 更新為最新版本'}
+            style={{ cursor: disabledReason ? 'not-allowed' : 'pointer' }}
+        >
+            <UpdateIcon /> 升級腳本
+        </Button>
+      </Dialog.Trigger>
+      <Dialog.Content maxWidth="450px">
+        <Dialog.Title size="3">升級 Apps Script</Dialog.Title>
+        {done ? (
+          <Dialog.Description size="2">
+            已將「{file.name}」的腳本升級為最新版本，API URL 維持不變。
+          </Dialog.Description>
+        ) : (
+          <Dialog.Description size="2">
+            將「{file.name}」的 Apps Script 替換為最新版本並更新現有部署，API URL 不會改變。
+            若您曾手動修改過 Code.gs，修改內容會被覆蓋。
+          </Dialog.Description>
+        )}
+
+        <Flex justify="end" gap="3" mt="4">
+          {done ? (
+            <Dialog.Close>
+                <Button style={{ cursor: 'pointer' }}>完成</Button>
+            </Dialog.Close>
+          ) : (
+            <>
+              <Dialog.Close>
+                  <Button variant="soft" color="gray" disabled={upgrading} style={{ cursor: 'pointer' }}>取消</Button>
+              </Dialog.Close>
+              <Button onClick={handleUpgrade} loading={upgrading} style={{ cursor: 'pointer' }}>
+                  <UpdateIcon /> 升級
+              </Button>
+            </>
+          )}
+        </Flex>
+      </Dialog.Content>
+    </Dialog.Root>
+  );
+};
+
 export const SheetListView: React.FC<SheetListViewProps> = ({  
   files, 
   loading, 
@@ -154,6 +235,7 @@ export const SheetListView: React.FC<SheetListViewProps> = ({
   onAddData,
   onUpdateData,
   onDeleteData,
+  onUpgradeScript,
   testData,
   authUrl,
   onCloseTestResult
@@ -289,6 +371,8 @@ export const SheetListView: React.FC<SheetListViewProps> = ({
                             body={{ id: "<target_id>" }}
                             onSend={() => onDeleteData(file)} // If you supported DELETE: onSend={(id) => onDeleteData(file, id)}
                         />
+
+                        <UpgradeScriptDialog file={file} onUpgrade={onUpgradeScript} />
                     </Flex>
                     </Flex>
                 </Card>
