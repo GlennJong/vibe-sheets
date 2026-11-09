@@ -42,6 +42,7 @@ const App: React.FC = () => {
     addTestData,
     updateTestData,
     deleteTestData,
+    upgradeScript,
     resetCreation,
     clearTestData,
     clearError,
@@ -180,6 +181,7 @@ const App: React.FC = () => {
                   onAddData={addTestData}
                   onUpdateData={updateTestData}
                   onDeleteData={deleteTestData}
+                  onUpgradeScript={upgradeScript}
                   testData={testData}
                   authUrl={authUrl}
                   onCloseTestResult={() => { clearTestData(); clearAuthUrl(); }}

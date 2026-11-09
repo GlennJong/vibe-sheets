@@ -1,6 +1,6 @@
 {
   "name": "@glennjong/vibe-sheets",
-  "version": "0.3.6",
+  "version": "0.4.1",
   "description": "Core SDK for Vibe Sheets",
   "repository": {
     "type": "git",
@@ -14,7 +14,8 @@
   ],
   "scripts": {
     "build": "tsup index.ts --format cjs,esm --dts",
-    "dev": "tsup index.ts --format cjs,esm --dts --watch"
+    "dev": "tsup index.ts --format cjs,esm --dts --watch",
+    "test": "npm run build && node --test test/*.test.mjs"
   },
   "keywords": [],
   "author": "",

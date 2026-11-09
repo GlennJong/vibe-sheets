@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Card, Flex, Button, Heading, Text, TextField, Callout } from '@radix-ui/themes';
 import { ExternalLinkIcon, CheckCircledIcon, ExclamationTriangleIcon, UpdateIcon, CircleIcon } from '@radix-ui/react-icons';
 import { openAuthPopup } from '../utils';
+import { getAuthorizeUrl } from '../../../src/core/appsScriptCode';
 
 export interface CreationResponse {
   spreadsheetUrl: string;
@@ -68,7 +69,7 @@ export const CreateSheetView: React.FC<CreateSheetViewProps> = ({
                 請授權您自己的 Apps Script (APIs) 來控制您的 Google Sheets。此工具完全運行在您的帳號下，您擁有絕對的主導權。
               </Text>
               <Button 
-                onClick={() => creationResult.scriptUrl && openAuthPopup(creationResult.scriptUrl)}
+                onClick={() => creationResult.scriptUrl && openAuthPopup(getAuthorizeUrl(creationResult.scriptUrl))}
                 color="amber"
                 variant="solid"
                 mt="3"
