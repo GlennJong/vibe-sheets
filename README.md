@@ -11,6 +11,7 @@ This repository contains the source code for the Vibe Sheets application and its
   - Create new "Vibe Sheets" (Spreadsheet + Apps Script API).
   - Manage existing sheets.
   - Test APIs visually (Read, Create, Update, Soft Delete).
+  - Upgrade a sheet's Apps Script to the latest version without changing its API URL.
 - **`src/`**: The core package (`@glennjong/vibe-sheets`), containing all business logic and Google API interactions.
 
 ## Key Capabilities
@@ -18,10 +19,17 @@ This repository contains the source code for the Vibe Sheets application and its
 The generated backend (Apps Script) works as a REST API:
 - **CRUD Ready**: Out-of-the-box support for Create, Read, Update, and Delete.
 - **Multi-Sheet Support**: Target specific sheets/tabs via API parameters.
-- **Smart Fields**: Auto-generated `id`, `created_at`, `updated_at`.
+- **Smart Fields**: Auto-generated `id`, `created_at`, `updated_at`, also filled in when rows are edited by hand in Google Sheets.
+- **Multiple Tabs**: Create several tabs at once with cross-tab `arrayFormula`, validation, read-only and hidden columns.
+- **Custom Routes**: Ship your own Apps Script code and expose it via `?action=<name>`.
+- **Safe Writes**: Create is idempotent by `id` and writes are serialized, so retries don't duplicate rows.
+- **In-place Upgrades**: `upgradeScript` updates the existing deployment, so the API URL stays the same.
 - **Soft Deletion**: Records are marked as `is_enabled: false` instead of being physically removed.
 - **Dynamic UI**: Boolean fields are automatically rendered as Checkboxes in Google Sheets.
+- **One-click Authorization**: Open `?action=authorize` (`getAuthorizeUrl(scriptUrl)`) for the owner's first-time authorization.
 - **API Testing**: The demo app includes a built-in API tester with field filtering.
+
+See [`src/README.md`](src/README.md) for the full SDK reference.
 
 ## Getting Started
 
